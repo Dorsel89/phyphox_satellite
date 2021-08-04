@@ -5,6 +5,7 @@
    * [Magnetometer MLX90393](#MLX90393)
    * [Accelerometer/Gyroscope ICM42605](#ICM42605)
    * [Temperature/Humidity SHTC3](#SHTC3)
+   * [Pressure/Temperature BMP384](#BMP384)
 3. [Specifications](#Specification)
 4. [Test-Results](#Test-Results)
 
@@ -51,6 +52,20 @@ Byte | Settings
 -----|---------
 0    | uint8_t enable sensor
 1    | uint8_t measurement interval in 10ms (0x03 equals 30ms measurement interval)
+
+### Pressure/Temperature BMP384  <a name="BMP384"></a> ###
+charateristic | uuid
+--------------|-----
+data          | cddf1006-30f7-4671-8b43-5e40ba53514a
+config        | cddf1007-30f7-4671-8b43-5e40ba53514a
+
+Byte | Settings
+-----|---------
+0    | Bit 0: enable pressure sensor <br>  Bit 0: enable temperature sensor
+1    | uint8_t pressure oversampling: <br>
+2    | uint8_t temperature oversampling
+3    | uint8_t iir filter coefficient <br> disable: 0x00 <br> 1: 0x01 <br> 3: 0x02 <br> 7: 0x03 <br> 15: 0x04 <br> 31: 0x05 <br> 63:
+4    | uint8_t data rate <br> 200Hz: 0x00 <br> 100Hz: 0x01 <br> 50Hz: 0x02 <br> 25Hz: 0x03 <br> 12.5Hz: 0x04 <br> 6.25Hz: 0x05 <br> 3.1Hz: 0x06 <br> 1.5Hz: 0x07 <br> 0.78Hz: 0x08 <br> 0.39Hz: 0x09 <br> 0_2Hz: 0x0A
 
 ## 3. Specifications <a name="Specification"></a>
 
