@@ -1,0 +1,83 @@
+<phyphox xmlns="http://phyphox.org/xml" xmlns:editor="http://phyphox.org/editor/xml" version="1.7" editor:version="1.0" locale="en">
+    <title>Satellit IMU</title>
+    <category>phyphox hardware</category>
+    <color>ffbe1a</color>
+    <description></description>
+    <data-containers>
+        <container size="1000" static="false">timePhyphox</container>
+        <container size="1000" static="false">accX</container>
+        <container size="1000" static="false">accY</container>
+        <container size="1000" static="false">accZ</container>
+        <container size="1000" static="false">gyrX</container>
+        <container size="1000" static="false">gyrY</container>
+        <container size="1000" static="false">gyrZ</container>
+        <container size="1000" static="false">timeSatellit</container>
+    </data-containers>
+    <input>
+        <bluetooth editor:uuid="101" editor:posx="100" editor:posy="250"  name="Satellit"  mode="notification" rate="1" subscribeOnStart="false">
+            <config char="cddf1003-30f7-4671-8b43-5e40ba53514a" conversion="hexadecimal">0303090109</config>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="0">accX</output>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="4">accY</output>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="8">accZ</output>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="12">gyrX</output>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="16">gyrY</output>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="20">gyrZ</output>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="24">timeSatellit</output>
+            <output char="cddf1002-30f7-4671-8b43-5e40ba53514a" conversion="string" extra="time">timePhyphox</output>
+        </bluetooth>
+    </input>
+    <output>
+    </output>
+    <analysis sleep="0"  onUserInput="false">
+    </analysis>
+    <views>
+        <view label="Acc">
+            <graph editor:uuid="155" editor:posx="789.296875" editor:posy="166.53125" label="X" aspectRatio="2.5" style="lines" lineWidth="1" color="ff7e22" partialUpdate="false" history="1" labelX="time" labelY="acc x" labelZ="m/s²" unitX="s" unitY="" unitZ="" logX="false" logY="false" logZ="false" xPrecision="3" yPrecision="3" zPrecision="3" scaleMinX="auto" scaleMaxX="auto" scaleMinY="auto" scaleMaxY="auto" scaleMinZ="auto" scaleMaxZ="auto" minX="0" maxX="0" minY="0" maxY="0" minZ="0" maxZ="0"  mapWidth="0"       >
+                <input axis="x">timeSatellit</input>
+                <input axis="y">accX</input>
+            </graph>
+            <value editor:uuid="156" editor:posx="788.34375" editor:posy="320.484375" label="X" size="1" precision="2" scientific="false" unit="m/s²" factor="1" >
+                <input>accX</input>
+            </value>
+            <graph editor:uuid="157" editor:posx="788.84375" editor:posy="427.921875" label="Y" aspectRatio="2.5" style="lines" lineWidth="1" color="ff7e22" partialUpdate="false" history="1" labelX="time" labelY="acc y" labelZ="" unitX="s" unitY="m/s²" unitZ="" logX="false" logY="false" logZ="false" xPrecision="3" yPrecision="3" zPrecision="3" scaleMinX="auto" scaleMaxX="auto" scaleMinY="auto" scaleMaxY="auto" scaleMinZ="auto" scaleMaxZ="auto" minX="0" maxX="0" minY="0" maxY="0" minZ="0" maxZ="0"  mapWidth="0"       >
+                <input axis="x">timeSatellit</input>
+                <input axis="y">accY</input>
+            </graph>
+            <value editor:uuid="158" editor:posx="789.109375" editor:posy="574.90625" label="acc y" size="1" precision="2" scientific="false" unit="m/s²" factor="1" >
+                <input>accY</input>
+            </value>
+            <graph editor:uuid="165" editor:posx="782.40625" editor:posy="663.703125" label="Z" aspectRatio="2.5" style="lines" lineWidth="1" color="ff7e22" partialUpdate="false" history="1" labelX="" labelY="" labelZ="" unitX="" unitY="" unitZ="" logX="false" logY="false" logZ="false" xPrecision="3" yPrecision="3" zPrecision="3" scaleMinX="auto" scaleMaxX="auto" scaleMinY="auto" scaleMaxY="auto" scaleMinZ="auto" scaleMaxZ="auto" minX="0" maxX="0" minY="0" maxY="0" minZ="0" maxZ="0"  mapWidth="0"       >
+                <input axis="x">timeSatellit</input>
+                <input axis="y">accZ</input>
+            </graph>
+            <value editor:uuid="172" editor:posx="787.828125" editor:posy="820.09375" label="Z" size="1" precision="2" scientific="false"  factor="1" >
+                <input>accZ</input>
+            </value>
+        </view>
+        <view label="Gyr">
+            <graph editor:uuid="197" editor:posx="1073.484375" editor:posy="167.5" label="X" aspectRatio="2.5" style="lines" lineWidth="1" color="ff7e22" partialUpdate="false" history="1" labelX="" labelY="" labelZ="" unitX="" unitY="" unitZ="" logX="false" logY="false" logZ="false" xPrecision="3" yPrecision="3" zPrecision="3" scaleMinX="auto" scaleMaxX="auto" scaleMinY="auto" scaleMaxY="auto" scaleMinZ="auto" scaleMaxZ="auto" minX="0" maxX="0" minY="0" maxY="0" minZ="0" maxZ="0"  mapWidth="0"       >
+                <input axis="x">timeSatellit</input>
+                <input axis="y">gyrX</input>
+            </graph>
+            <value editor:uuid="210" editor:posx="1072.703125" editor:posy="322.625" label="X" size="1" precision="2" scientific="false"  factor="1" >
+                <input>gyrX</input>
+            </value>
+            <graph editor:uuid="235" editor:posx="1068.3125" editor:posy="434.515625" label="Y" aspectRatio="2.5" style="lines" lineWidth="1" color="ff7e22" partialUpdate="false" history="1" labelX="" labelY="" labelZ="" unitX="" unitY="" unitZ="" logX="false" logY="false" logZ="false" xPrecision="3" yPrecision="3" zPrecision="3" scaleMinX="auto" scaleMaxX="auto" scaleMinY="auto" scaleMaxY="auto" scaleMinZ="auto" scaleMaxZ="auto" minX="0" maxX="0" minY="0" maxY="0" minZ="0" maxZ="0"  mapWidth="0"       >
+                <input axis="x">timeSatellit</input>
+                <input axis="y">gyrY</input>
+            </graph>
+            <value editor:uuid="248" editor:posx="1098.65625" editor:posy="604.8125" label="Y" size="1" precision="2" scientific="false"  factor="1" >
+                <input>gyrY</input>
+            </value>
+            <graph editor:uuid="273" editor:posx="1084.59375" editor:posy="707.953125" label="Z" aspectRatio="2.5" style="lines" lineWidth="1" color="ff7e22" partialUpdate="false" history="1" labelX="" labelY="" labelZ="" unitX="" unitY="" unitZ="" logX="false" logY="false" logZ="false" xPrecision="3" yPrecision="3" zPrecision="3" scaleMinX="auto" scaleMaxX="auto" scaleMinY="auto" scaleMaxY="auto" scaleMinZ="auto" scaleMaxZ="auto" minX="0" maxX="0" minY="0" maxY="0" minZ="0" maxZ="0"  mapWidth="0"       >
+                <input axis="x">timeSatellit</input>
+                <input axis="y">gyrZ</input>
+            </graph>
+            <value editor:uuid="286" editor:posx="1077.875" editor:posy="865.453125" label="Z" size="1" precision="2" scientific="false"  factor="1" >
+                <input>gyrZ</input>
+            </value>
+        </view>
+    </views>
+    <export>
+    </export>
+</phyphox>
