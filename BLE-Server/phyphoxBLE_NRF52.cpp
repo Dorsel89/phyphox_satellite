@@ -6,6 +6,9 @@ const UUID PhyphoxBLE::phyphoxExperimentServiceUUID = UUID(phyphoxBleExperimentS
 const UUID PhyphoxBLE::experimentCharacteristicUUID = UUID(phyphoxBleExperimentCharacteristicUUID);
 
 const UUID PhyphoxBLE::phyphoxDataServiceUUID = UUID(phyphoxBleDataServiceUUID);
+const UUID PhyphoxBLE::phyphoxHWConfigServiceUUID = UUID(phyphoxBleHWConfigServiceUUID);
+
+const UUID PhyphoxBLE::hwConfigCharacteristicUUID = UUID(phyphoxBleHWConfigCharacteristicUUID);
 
 const UUID PhyphoxBLE::batteryServiceUUID = UUID(GattService::UUID_BATTERY_SERVICE);
 
@@ -15,8 +18,8 @@ const UUID PhyphoxBLE::icm42605ConfigCharacteristicUUID = UUID(phyphoxBleICM4260
 const UUID PhyphoxBLE::shtc3DataCharacteristicUUID = UUID(phyphoxBleSHTC3DataCharacteristicUUID);
 const UUID PhyphoxBLE::shtc3ConfigCharacteristicUUID = UUID(phyphoxBleSHTC3ConfigCharacteristicUUID);
 
-const UUID PhyphoxBLE::ms5607DataCharacteristicUUID = UUID(phyphoxBleMS5607DataCharacteristicUUID);
-const UUID PhyphoxBLE::ms5607ConfigCharacteristicUUID = UUID(phyphoxBleMS5607ConfigCharacteristicUUID);
+const UUID PhyphoxBLE::bmp384DataCharacteristicUUID = UUID(phyphoxBleBMP384DataCharacteristicUUID);
+const UUID PhyphoxBLE::bmp384ConfigCharacteristicUUID = UUID(phyphoxBleBMP384ConfigCharacteristicUUID);
 
 const UUID PhyphoxBLE::mlx90393DataCharacteristicUUID = UUID(phyphoxBleMLX90393DataCharacteristicUUID);
 const UUID PhyphoxBLE::mlx90393ConfigCharacteristicUUID = UUID(phyphoxBleMLX90393ConfigCharacteristicUUID);
@@ -59,8 +62,8 @@ ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> Phyp
 ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::shtc3ConfigCharacteristic{PhyphoxBLE::shtc3ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
 //  - MAGNETOMETER
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::ms5607DataCharacteristic{PhyphoxBLE::ms5607DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::ms5607ConfigCharacteristic{PhyphoxBLE::ms5607ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::bmp384DataCharacteristic{PhyphoxBLE::bmp384DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::bmp384ConfigCharacteristic{PhyphoxBLE::bmp384ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
 //  - MS5607
 ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::mlx90393DataCharacteristic{PhyphoxBLE::mlx90393DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
@@ -82,6 +85,7 @@ ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> Phyp
 ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::ds18b20DataCharacteristic{PhyphoxBLE::ds18b20DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
 ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::ds18b20ConfigCharacteristic{PhyphoxBLE::ds18b20ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::hwConfigCharacteristic{PhyphoxBLE::hwConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
 
 
 //Experiment Transfer
@@ -96,6 +100,8 @@ PhyphoxBleEventHandler PhyphoxBLE::eventHandler(bleInstance);
 GattCharacteristic* PhyphoxBLE::phyphoxCharacteristics[1] = {&PhyphoxBLE::experimentCharacteristic};
 GattService PhyphoxBLE::phyphoxService{PhyphoxBLE::phyphoxExperimentServiceUUID, PhyphoxBLE::phyphoxCharacteristics, sizeof(PhyphoxBLE::phyphoxCharacteristics) / sizeof(GattCharacteristic *)};
 
+GattCharacteristic* PhyphoxBLE::phyphoxHWConfigCharacteristics[1] = {&PhyphoxBLE::hwConfigCharacteristic};
+GattService PhyphoxBLE::phyphoxHWConfigService{PhyphoxBLE::phyphoxHWConfigServiceUUID, PhyphoxBLE::phyphoxHWConfigCharacteristics, sizeof(PhyphoxBLE::phyphoxHWConfigCharacteristics) / sizeof(GattCharacteristic *)};
 BatteryService PhyphoxBLE::batteryService(ble,50);
 
 GattCharacteristic* PhyphoxBLE::phyphoxDataCharacteristics[16] = {
@@ -103,8 +109,8 @@ GattCharacteristic* PhyphoxBLE::phyphoxDataCharacteristics[16] = {
                                                                 &PhyphoxBLE::icm42605ConfigCharacteristic,
                                                                 &PhyphoxBLE::shtc3DataCharacteristic,
                                                                 &PhyphoxBLE::shtc3ConfigCharacteristic,
-                                                                &PhyphoxBLE::ms5607DataCharacteristic,
-                                                                &PhyphoxBLE::ms5607ConfigCharacteristic,
+                                                                &PhyphoxBLE::bmp384DataCharacteristic,
+                                                                &PhyphoxBLE::bmp384ConfigCharacteristic,
                                                                 &PhyphoxBLE::mlx90393DataCharacteristic,
                                                                 &PhyphoxBLE::mlx90393ConfigCharacteristic,
                                                                 &PhyphoxBLE::loadcellDataCharacteristic,
@@ -131,6 +137,13 @@ void (*PhyphoxBLE::shtc3Handler)() = nullptr;
 void (*PhyphoxBLE::mlxHandler)() = nullptr;
 void (*PhyphoxBLE::bmpHandler)() = nullptr;
 void (*PhyphoxBLE::imuHandler)() = nullptr;
+
+void (*PhyphoxBLE::thermocoupleHandler)() = nullptr;
+void (*PhyphoxBLE::ds18b20Handler)() = nullptr;
+void (*PhyphoxBLE::mprlsHandler)() = nullptr;
+
+void (*PhyphoxBLE::hwConfigHandler)() = nullptr;
+
 
 void PhyphoxBleEventHandler::onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event)
 {
@@ -213,6 +226,27 @@ void PhyphoxBLE::configReceived(const GattWriteCallbackParams *params)
             transferQueue.call(imuHandler); 		
         }
     }
+    if (params->handle == PhyphoxBLE::hwConfigCharacteristic.getValueHandle() ) {
+        if(hwConfigHandler != nullptr){
+            transferQueue.call( hwConfigHandler ); 		
+        }
+    }
+
+    if (params->handle == PhyphoxBLE::ds18b20ConfigCharacteristic.getValueHandle() ) {
+        if(ds18b20Handler != nullptr){
+            transferQueue.call(ds18b20Handler); 		
+        }
+    }
+    if (params->handle == PhyphoxBLE::thermocoupleConfigCharacteristic.getValueHandle() ) {
+        if(thermocoupleHandler != nullptr){
+            transferQueue.call(thermocoupleHandler); 		
+        }
+    }
+    if (params->handle == PhyphoxBLE::mprlsConfigCharacteristic.getValueHandle() ) {
+        if(mprlsHandler != nullptr){
+            transferQueue.call(mprlsHandler); 		
+        }
+    }
     // BMP MISSING
 }
 void PhyphoxBLE::transferExp()
@@ -285,8 +319,8 @@ void PhyphoxBLE::bleInitComplete(BLE::InitializationCompleteCallbackContext* par
 	ble::AdvertisingDataBuilder adv_data_builder(_adv_buffer);
 	ble::AdvertisingParameters adv_parameters(ble::advertising_type_t::CONNECTABLE_UNDIRECTED, ble::adv_interval_t(ble::millisecond_t(1000)));
 	adv_data_builder.setFlags();
-    adv_data_builder.setLocalServiceList(mbed::make_Span(&phyphoxExperimentServiceUUID, 1));
-    ble_error_t error = adv_data_builder.setName(name);
+    adv_data_builder.setLocalServiceList(mbed::make_Span(&phyphoxHWConfigServiceUUID, 1));
+    //ble_error_t error = adv_data_builder.setName(name);
 
 
   	#ifndef NDEBUG
@@ -301,8 +335,13 @@ void PhyphoxBLE::bleInitComplete(BLE::InitializationCompleteCallbackContext* par
 
     ble.gap().setAdvertisingParameters(ble::LEGACY_ADVERTISING_HANDLE, adv_parameters);
     ble.gap().setAdvertisingPayload(ble::LEGACY_ADVERTISING_HANDLE,adv_data_builder.getAdvertisingData());
+    adv_data_builder.clear();
+    adv_data_builder.setName(name);
+    ble.gap().setAdvertisingScanResponse(ble::LEGACY_ADVERTISING_HANDLE,adv_data_builder.getAdvertisingData());
     ble.gattServer().addService(phyphoxService);
     ble.gattServer().addService(phyphoxDataService);
+    ble.gattServer().addService(phyphoxHWConfigService);
+
     //ble.gattServer().addService(batteryService);
  
 	ble.gap().startAdvertising(ble::LEGACY_ADVERTISING_HANDLE);
@@ -379,24 +418,33 @@ void PhyphoxBLE::write(float *value, uint8_t arrayLength, uint8_t sensorID)
     uint8_t dataBuf[4*arrayLength];
     memcpy(&dataBuf[0], value, 4*arrayLength);
 
-    switch (sensorID) {
-        case ID_ICM42605:
+
+        if(sensorID == ID_ICM42605){
             ble.gattServer().write(icm42605DataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);
-        case ID_MLX90393:
+        }            
+
+        if(sensorID == ID_MLX90393){
             ble.gattServer().write(mlx90393DataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);            
-        case ID_MS5607:
-            ble.gattServer().write(ms5607DataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);     
-        case ID_SHTC3:
+        } 
+        if(sensorID == ID_BMP384){
+            ble.gattServer().write(bmp384DataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);     
+        } 
+        if(sensorID == ID_SHTC3){
             ble.gattServer().write(shtc3DataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);     
-        case ID_LOADCELL:
+        } 
+        if(sensorID == ID_LOADCELL){
             ble.gattServer().write(loadcellDataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);   
-        case ID_MPRLS:
+        } 
+        if(sensorID == ID_MPRLS){
             ble.gattServer().write(mprlsDataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);   
-        case ID_THERMOCOUPLE:
+        } 
+        if(sensorID == ID_THERMOCOUPLE){
             ble.gattServer().write(thermocoupleDataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);   
-        case ID_DS18B20:
-            ble.gattServer().write(ds18b20DataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);                                                       
-    }
+        } 
+        if(sensorID == ID_DS18B20){
+            ble.gattServer().write(ds18b20DataCharacteristic.getValueHandle(), &dataBuf[0], 4*arrayLength);
+        }                                                       
+    
 	
 	
 }
@@ -408,8 +456,8 @@ void PhyphoxBLE::write(uint8_t *arrayPointer, unsigned int arraySize, uint8_t se
             ble.gattServer().write(icm42605DataCharacteristic.getValueHandle(), arrayPointer, arraySize);
         case ID_MLX90393:
             ble.gattServer().write(mlx90393DataCharacteristic.getValueHandle(), arrayPointer, arraySize);
-        case ID_MS5607:
-            ble.gattServer().write(ms5607DataCharacteristic.getValueHandle(), arrayPointer, arraySize);
+        case ID_BMP384:
+            ble.gattServer().write(bmp384DataCharacteristic.getValueHandle(), arrayPointer, arraySize);
         case ID_SHTC3:
             ble.gattServer().write(shtc3DataCharacteristic.getValueHandle(), arrayPointer, arraySize); 
         case ID_LOADCELL:
@@ -433,8 +481,8 @@ void PhyphoxBLE::read(uint8_t *arrayPointer, unsigned int arraySize, uint8_t sen
     if(sensorID== ID_MLX90393){
         ble.gattServer().read(mlx90393ConfigCharacteristic.getValueHandle(), arrayPointer, &myArraySize);
     }
-    if(sensorID== ID_MS5607){
-        ble.gattServer().read(ms5607ConfigCharacteristic.getValueHandle(), arrayPointer, &myArraySize);
+    if(sensorID== ID_BMP384){
+        ble.gattServer().read(bmp384ConfigCharacteristic.getValueHandle(), arrayPointer, &myArraySize);
     }
     if(sensorID== ID_SHTC3){
         ble.gattServer().read(shtc3ConfigCharacteristic.getValueHandle(), arrayPointer, &myArraySize);
@@ -458,6 +506,12 @@ void PhyphoxBLE::readIMU(uint8_t *arrayPointer, unsigned int arraySize, uint8_t 
     ble.gattServer().read(icm42605ConfigCharacteristic.getValueHandle(), arrayPointer, &myArraySize);
 }
 
+void PhyphoxBLE::readHWConfig(uint8_t *arrayPointer, unsigned int arraySize)
+{
+	uint16_t myArraySize = arraySize;
+	ble.gattServer().read(hwConfigCharacteristic.getValueHandle(), arrayPointer, &myArraySize);
+
+}
 void PhyphoxBLE::addExperiment(PhyphoxBleExperiment& exp)
 {
 	char buffer[2000] ="";

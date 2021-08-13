@@ -55,12 +55,13 @@ class PhyphoxBLE
     
 	static const UUID phyphoxExperimentServiceUUID;
 	static const UUID phyphoxDataServiceUUID;
+    static const UUID phyphoxHWConfigServiceUUID;
 
 	static const UUID experimentCharacteristicUUID;
 	
     static const UUID icm42605DataCharacteristicUUID;
 	static const UUID shtc3DataCharacteristicUUID;
-    static const UUID ms5607DataCharacteristicUUID;
+    static const UUID bmp384DataCharacteristicUUID;
     static const UUID mlx90393DataCharacteristicUUID;
     static const UUID loadcellDataCharacteristicUUID;
     static const UUID mprlsDataCharacteristicUUID;
@@ -69,7 +70,7 @@ class PhyphoxBLE
     
     static const UUID icm42605ConfigCharacteristicUUID;
 	static const UUID shtc3ConfigCharacteristicUUID;
-    static const UUID ms5607ConfigCharacteristicUUID;
+    static const UUID bmp384ConfigCharacteristicUUID;
     static const UUID mlx90393ConfigCharacteristicUUID;
     static const UUID loadcellConfigCharacteristicUUID;
     static const UUID thermocoupleConfigCharacteristicUUID;
@@ -78,6 +79,8 @@ class PhyphoxBLE
 
     static const UUID batteryServiceUUID;
 
+    static const UUID hwConfigCharacteristicUUID;
+	static const UUID configCharacteristicUUID;
 
     static char name[50];
 
@@ -92,8 +95,8 @@ class PhyphoxBLE
     static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> shtc3DataCharacteristic;
 	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> shtc3ConfigCharacteristic;
     
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> ms5607DataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> ms5607ConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> bmp384DataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> bmp384ConfigCharacteristic;
 
     static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> mlx90393DataCharacteristic;
 	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> mlx90393ConfigCharacteristic;
@@ -112,6 +115,8 @@ class PhyphoxBLE
 
 	static uint8_t readValue[DATASIZE];
 	static ReadOnlyArrayGattCharacteristic<uint8_t, sizeof(readValue)> experimentCharacteristic;
+
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> hwConfigCharacteristic;
 
 
 	static Thread bleEventThread;
@@ -136,9 +141,11 @@ class PhyphoxBLE
 	static GattService phyphoxService;
     
 	static GattCharacteristic* phyphoxDataCharacteristics[];
-	
+	static GattCharacteristic* phyphoxHWConfigCharacteristics[];
+
 	static GattService phyphoxDataService;
-	
+    static GattService phyphoxHWConfigService;
+
 	static void schedule_ble_events(BLE::OnEventsToProcessCallbackContext *context);
 
 	#ifndef NDEBUG
@@ -167,9 +174,12 @@ class PhyphoxBLE
 	static void (*configHandler)();
     static void (*shtc3Handler)();
     static void (*mlxHandler)();
+    static void (*ds18b20Handler)();
+    static void (*thermocoupleHandler)();
+    static void (*mprlsHandler)();
     static void (*bmpHandler)();
     static void (*imuHandler)();
-    
+    static void (*hwConfigHandler)();
 
     static void poll();
     static void poll(int timeout);
@@ -184,6 +194,8 @@ class PhyphoxBLE
 
 	static void read(uint8_t*, unsigned int,uint8_t);
     static void readIMU(uint8_t*, unsigned int,uint8_t);
+    
+    static void readHWConfig(uint8_t*, unsigned int);
 
 	static void addExperiment(PhyphoxBleExperiment&);
 	#ifndef NDEBUG

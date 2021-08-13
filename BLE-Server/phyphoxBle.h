@@ -5,7 +5,7 @@
 
 #define ID_ICM42605 1
 #define ID_SHTC3 2
-#define ID_MS5607 3
+#define ID_BMP384 3
 #define ID_MLX90393 4
 #define ID_LOADCELL 5
 #define ID_MPRLS 6
@@ -24,8 +24,8 @@ static const char *phyphoxBleICM42605ConfigCharacteristicUUID = "cddf1003-30f7-4
 static const char *phyphoxBleSHTC3DataCharacteristicUUID = "cddf1004-30f7-4671-8b43-5e40ba53514a";
 static const char *phyphoxBleSHTC3ConfigCharacteristicUUID = "cddf1005-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleMS5607DataCharacteristicUUID = "cddf1006-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleMS5607ConfigCharacteristicUUID = "cddf1007-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleBMP384DataCharacteristicUUID = "cddf1006-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleBMP384ConfigCharacteristicUUID = "cddf1007-30f7-4671-8b43-5e40ba53514a";
 
 static const char *phyphoxBleMLX90393DataCharacteristicUUID = "cddf1008-30f7-4671-8b43-5e40ba53514a";
 static const char *phyphoxBleMLX90393ConfigCharacteristicUUID = "cddf1009-30f7-4671-8b43-5e40ba53514a";
@@ -42,6 +42,8 @@ static const char *phyphoxBleTHERMOCOUPLEConfigCharacteristicUUID = "cddf100f-30
 static const char *phyphoxBleDS18B20DataCharacteristicUUID = "cddf1010-30f7-4671-8b43-5e40ba53514a";
 static const char *phyphoxBleDS18B20ConfigCharacteristicUUID = "cddf1011-30f7-4671-8b43-5e40ba53514a";
 
+static const char *phyphoxBleHWConfigServiceUUID = "cddf9021-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleHWConfigCharacteristicUUID = "cddf9022-30f7-4671-8b43-5e40ba53514a";
 
 #ifndef CONFIGSIZE
 #define CONFIGSIZE 20
