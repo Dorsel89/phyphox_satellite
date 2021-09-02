@@ -247,7 +247,11 @@ void PhyphoxBLE::configReceived(const GattWriteCallbackParams *params)
             transferQueue.call(mprlsHandler); 		
         }
     }
-    // BMP MISSING
+    if (params->handle == PhyphoxBLE::bmp384ConfigCharacteristic.getValueHandle() ) {
+        if(bmpHandler != nullptr){
+            transferQueue.call(bmpHandler); 		
+        }
+    }
 }
 void PhyphoxBLE::transferExp()
 {

@@ -42,10 +42,12 @@ volatile bool flagIMU = false;
 volatile bool flagMLX = false;
 volatile bool flagBMP = false;
 volatile bool flagDS18B20 = false;
+volatile bool flagLoadcell = false;
 
 void shtc3Config();
 void mlxConfig();
 void imuConfig();
+void bmpConfig();
 
 void ds18b20Config();
 void tcConfig();
@@ -58,6 +60,9 @@ Ticker tickerShtc3;
 
 I2C i2c(SDA,SCL);
 
+BMP384 bmp384(&i2c);
+bool bmpAvailable = true;
+
 I2Chelper myI2Chelper(&i2c);
 
 ICM42605 IMU(&myI2Chelper);
@@ -65,9 +70,11 @@ MS5607 barometer(&i2c);
 MLX90393 mlx;
 SHTC3 shtc3;
 MPRLS mprls;
+//DigitalOut test(ONEWIRE);
 Onewire myOneWire(ONEWIRE);
 MAX31850 Thermocouple(&myOneWire);
 DS18B20 ds18b20(&myOneWire);
+ADS1231 myWeightSensor( SCLK_LOADCELL, DATA_LOADCELL_PIN );
 
 //InterruptIn IMU_DataReady(INT1);
 DigitalIn IMU_DataReady(INT1);
@@ -80,8 +87,15 @@ DigitalInOut EN_measureBattery(measureBattery);
 
 DigitalOut EN_LOADCELL(PWDWN_LOADCELL_PIN);
 DigitalOut FAST_LOADCELL(SPEED_LOADCELL_PIN);
+DigitalIn dataReadyLoadcell(DATA_LOADCELL_PIN);
 
-
+struct {
+    ADS1231::ADS1231_status_t status;
+    ADS1231::Vector_count_t   count;
+    uint8_t num_avg;
+    ADS1231::Vector_mass_t    calculated_mass;
+    ADS1231::Vector_voltage_t calculated_volt;
+} loadcellSample;
 
 uint8_t configData[20]={0};
 
@@ -108,7 +122,7 @@ void updateBatteryStatus(){
     EN_measureBattery.output();
     EN_measureBattery = 0;
     ThisThread::sleep_for(1ms);
-    uint8_t percent = 100*ADC_SUPERCAP * 3.3 * 11/5.0;
+    uint8_t percent = 100*ADC_SUPERCAP * 3.3 * 11/(5.0);
     EN_measureBattery.input();
     //EN_measureBattery =1;
     PhyphoxBLE::batteryService.updateBatteryLevel(percent);
@@ -139,6 +153,7 @@ void mprlsSetFlag(){
 bool getNBit(uint8_t byte, int position){
     return byte & (1<<position);
 }
+
 void thermocoupleConfig(){
     PhyphoxBLE::read(&configData[0],20, ID_THERMOCOUPLE);
     if(configData[0]==1){
@@ -165,6 +180,15 @@ void ds18b20Config(){
         ds18b20Ticker.attach(&ds18b20SetFlag, 500ms);
     }
 }
+void bmpConfig(){
+    PhyphoxBLE::read(&configData[0],20,ID_BMP384);
+    if(configData[0]==1){
+        bmp384.enable();
+    }else {
+        bmp384.disable();
+    }
+}
+
 void imuConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_ICM42605);
     IMU.setState(false, false);
@@ -208,9 +232,7 @@ void mlxConfig(){
     //MLX.burst = getNBit(configData[0], 1);
     //MLX.rising = getNBit(configData[0], 2);
     //MLX.threshold = configData[8] << 8 | configData[7];
-    //MLX.datapoints = configData[10] << 8 | configData[9];
-    
-    
+    //MLX.datapoints = configData[10] << 8 | configData[9];   
 }
 void shtc3Config(){
     //read config and set ticker according to datarate
@@ -241,6 +263,13 @@ void readMPRLS(){
     PhyphoxBLE::write(value,2,ID_MPRLS);
     flagMPRLS=false;    
 }
+void readLoadcell(){
+    loadcellSample.status          = myWeightSensor.ADS1231_ReadRawData(&loadcellSample.count, loadcellSample.num_avg);
+    loadcellSample.calculated_volt = myWeightSensor.ADS1231_CalculateVoltage(&loadcellSample.count, 3.3);
+    loadcellSample.calculated_mass = myWeightSensor.ADS1231_CalculateMass(&loadcellSample.count, 0.052, ADS1231::ADS1231_SCALE_g);
+    float value[2] = {loadcellSample.calculated_mass.myMass,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    PhyphoxBLE::write(value,2,ID_LOADCELL);
+}
 void readIMU(){
         uint8_t error;
         error = IMU.readData();
@@ -268,6 +297,7 @@ void readIMU(){
         }   
         */
 }
+
 void readTHERMOCOUPLE(){
         float value[2] = {Thermocouple.getTemp(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
         PhyphoxBLE::write(value,2,ID_THERMOCOUPLE);
@@ -278,6 +308,7 @@ void readDS18B20(){
     ds18b20.startTempConversion();
     PhyphoxBLE::write(floatData, 2, ID_DS18B20);  
 }
+
 void readMLX(){
     float value[4];
     mlx.readMeasurement(&value[0], &value[1], &value[2]);    
@@ -304,6 +335,26 @@ void burstMode(float* newDataPoints,int numberOfDataPoints){
 }
 */
 
+void initADS1231(){
+    /*
+    loadcellSample.num_avg=1;
+    uint8_t num_avg_cal = 4;
+    ADS1231::ADS1231_status_t sts;
+    test=0;
+    sts = myWeightSensor.ADS1231_PowerDown();
+    ThisThread::sleep_for(500ms);
+    sts = myWeightSensor.ADS1231_Reset();
+    ThisThread::sleep_for(500ms);
+    myWeightSensor.ADS1231_ReadData_WithoutMass(&loadcellSample.count, num_avg_cal);
+    test=1;
+    ThisThread::sleep_for(5s);
+    test=0;
+    myWeightSensor.ADS1231_ReadData_WithCalibratedMass(&loadcellSample.count, num_avg_cal);
+    ThisThread::sleep_for(500ms);
+    myWeightSensor.ADS1231_SetAutoTare(0.052, ADS1231::ADS1231_SCALE_g, &loadcellSample.count, num_avg_cal);
+    */
+}
+
 int main()
 {
     
@@ -314,22 +365,21 @@ int main()
     NRF_UICR->NFCPINS = 0x00000000;
     
     EN_measureBattery.input();
-    FAST_LOADCELL = 0;
+    FAST_LOADCELL = 1;
     EN_LOADCELL = 0;
     LED_B=0;
     LED_R=0;
-    
+
     PhyphoxBLE::shtc3Handler = &shtc3Config;
     PhyphoxBLE::imuHandler = &imuConfig;
     PhyphoxBLE::mlxHandler = &mlxConfig;
+    PhyphoxBLE::bmpHandler = &bmpConfig;
 
     PhyphoxBLE::mprlsHandler = &mprlsConfig;
     PhyphoxBLE::ds18b20Handler = &ds18b20Config;
     PhyphoxBLE::thermocoupleHandler = &thermocoupleConfig;
 
     struct sensor MLX = {0,0,0,0,true};
-
-
 
     // init IMU
     IMU.reset();
@@ -348,15 +398,16 @@ int main()
     PhyphoxBLE::start("Satellit S0000");        
 
     Ticker BatteryTicker;
-    BatteryTicker.attach(checkBattery,20s);
+    BatteryTicker.attach(checkBattery,200ms);
     
-    
-    //BMP384 bmp384(&i2c);
-    //bmp384.init();
-    //bmp384.disable();   //TODO   
-    
+    if(bmpAvailable){
+        bmp384.init();
+        bmp384.disable();   //TODO   
+        
+    }
     mprls.setI2C(0x18 << 1 ,&i2c);  //TODO
-    
+    //EN_LOADCELL = 1;
+    //initADS1231();
     while (true) {
         if(PhyphoxBLE::currentConnections >0 && deviceInSleepMode){
             deviceInSleepMode=false;
@@ -372,24 +423,29 @@ int main()
                 imuTicker.detach();
                 ds18b20Ticker.detach();
                 deviceInSleepMode = true;
+                bmp384.disable();
             }
             ThisThread::sleep_for(1s);            
             continue;
         }
-        /*
-        if(flagBMP){
-            bmp384.getData();
-            float data[3]={(float)0.1*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-            PhyphoxBLE::write(data,3,ID_BMP384);
-            flagBMP = false;
-        }
-        */
+        if(bmpAvailable){
+            if(flagBMP){
+                bmp384.getData();
+                float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+                PhyphoxBLE::write(data,3,ID_BMP384);
+                flagBMP = false;
+            }
+        }        
         if(flagBattery){
             updateBatteryStatus();
             flagBattery=false;
         }
         if(flagSHTC3){
             readShtc3();
+        }
+        if(flagLoadcell){
+            readLoadcell();
+            flagLoadcell=false;
         }
         if(flagMPRLS){
             readMPRLS();
@@ -403,6 +459,7 @@ int main()
             flagMLX=false;
             readMLX();
         }
+        
          if(flagDS18B20){
             flagDS18B20=false;
             readDS18B20();
@@ -411,8 +468,6 @@ int main()
             flagTC=false;
             readTHERMOCOUPLE();
         }        
-
     }
-    
 }
 
