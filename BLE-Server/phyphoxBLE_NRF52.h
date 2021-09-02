@@ -84,7 +84,7 @@ class PhyphoxBLE
 
     static char name[50];
 
-	static uint8_t data_package[50];
+	static uint8_t data_package[112];
 	static uint8_t config_package[CONFIGSIZE];
 
 	/*BLE stuff*/

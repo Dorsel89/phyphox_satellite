@@ -211,7 +211,8 @@ void imuConfig(){
     global.reset(); 
 }
 void mlxConfig(){
-    global.reset();
+    
+    mlx.exitMode();
     PhyphoxBLE::read(&configData[0],20,ID_MLX90393);
     mlx.setGain(mlx90393_gain((uint8_t)configData[1]));
     mlx.setFilter(mlx90393_filter((uint8_t)configData[2]));
@@ -219,6 +220,7 @@ void mlxConfig(){
     mlx.setResolution(MLX90393_X, mlx90393_resolution((uint8_t)configData[4]));
     mlx.setResolution(MLX90393_Y, mlx90393_resolution((uint8_t)configData[5]));
     mlx.setResolution(MLX90393_Z, mlx90393_resolution((uint8_t)configData[6]));
+    
     //mlx.startBurstMode();
     
     //byte 0; bit 0: enable mlx all axis
@@ -227,7 +229,7 @@ void mlxConfig(){
         MLX.enable = true;
     }else{
         MLX.enable = false;
-        mlx.startSingleMeasurement(); // "disabled"
+        mlx.exitMode();
     }    
     //MLX.burst = getNBit(configData[0], 1);
     //MLX.rising = getNBit(configData[0], 2);
@@ -312,12 +314,15 @@ void readDS18B20(){
 void readMLX(){
     float value[4];
     mlx.readMeasurement(&value[0], &value[1], &value[2]);    
-    value[3]=0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
-    PhyphoxBLE::write(value,4,ID_MLX90393);
-//    if(!MLX.burst){
-        
-//    }
-    
+    mlx.measuredData[4*mlx.currentPackage+0]=value[0];
+    mlx.measuredData[4*mlx.currentPackage+1]=value[1];
+    mlx.measuredData[4*mlx.currentPackage+2]=value[2];
+    mlx.measuredData[4*mlx.currentPackage+3]=0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
+    mlx.currentPackage+=1;
+    if(mlx.currentPackage == mlx.numberPerPackage){
+        PhyphoxBLE::write(mlx.measuredData,mlx.numberPerPackage*4,ID_MLX90393);
+        mlx.currentPackage = 0;
+    }
 }
 void checkBattery(){
     flagBattery = true;
@@ -393,8 +398,8 @@ int main()
     mlx_DataReady.rise(&mlxSetFlag);
     bmpDataReady.rise(&bmpSetFlag);
     mlx.begin_I2C(24, &i2c);//0x18
-    
-    mlx.startSingleMeasurement();
+    mlx.numberPerPackage = 7;
+    mlx.exitMode();
     PhyphoxBLE::start("Satellit S0000");        
 
     Ticker BatteryTicker;
@@ -418,6 +423,8 @@ int main()
                 IMU.setState(false, false);
                 MLX.enable = false;
                 mlx.startSingleMeasurement(); // "disabled"
+                mlx.setOversampling(mlx90393_oversampling(0x03));
+                mlx.setFilter(mlx90393_filter(7));
                 thermocoupleTicker.detach();
                 mprlsTicker.detach();
                 imuTicker.detach();

@@ -43,7 +43,7 @@ char PhyphoxBLE::name[50] = "";
 Thread PhyphoxBLE::bleEventThread;
 Thread PhyphoxBLE::transferExpThread;
 
-uint8_t PhyphoxBLE::data_package[50] = {0};
+uint8_t PhyphoxBLE::data_package[112] = {0};
 uint8_t PhyphoxBLE::config_package[CONFIGSIZE] = {0};
 
 /*BLE stuff*/

@@ -19,7 +19,8 @@
     ],
     "target_overrides": {
         "*": {
-            "cordio.desired-att-mtu": 100,
+            "cordio.desired-att-mtu": 120,
+            "cordio.rx-acl-buffer-size": 140,
             "target.lf_clock_src": "NRF_LF_SRC_RC",
             "target.console-uart": false,
             "target.console-uart-flow-control": null
