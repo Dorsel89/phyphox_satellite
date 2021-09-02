@@ -84,7 +84,7 @@ class PhyphoxBLE
 
     static char name[50];
 
-	static uint8_t data_package[112];
+	static uint8_t data_package[182];
 	static uint8_t config_package[CONFIGSIZE];
 
 	/*BLE stuff*/
@@ -159,12 +159,10 @@ class PhyphoxBLE
 	public:
     static BLE& ble;
     static BatteryService batteryService;
-/*
-    PhyphoxBLE::fast.minConnectionInterval = 0x0006;
-    PhyphoxBLE::fast.maxConnectionInterval = 0x0010;
-    PhyphoxBLE::fast.slaveLatency = 0;
-    PhyphoxBLE::fast.connectionSupervisionTimeout = 0x0014;
-    */
+    static inline uint16_t minConInterval = 6;	//7.5ms
+	static inline uint16_t maxConInterval = 20; //30ms
+	static inline uint16_t slaveLatency = 0;
+	static inline uint16_t timeout = 50;
 	static uint16_t currentConnections;	
 
     

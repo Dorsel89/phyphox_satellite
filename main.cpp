@@ -398,7 +398,7 @@ int main()
     mlx_DataReady.rise(&mlxSetFlag);
     bmpDataReady.rise(&bmpSetFlag);
     mlx.begin_I2C(24, &i2c);//0x18
-    mlx.numberPerPackage = 7;
+    mlx.numberPerPackage = 8;
     mlx.exitMode();
     PhyphoxBLE::start("Satellit S0000");        
 

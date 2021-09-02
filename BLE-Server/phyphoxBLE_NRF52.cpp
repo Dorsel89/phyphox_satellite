@@ -43,7 +43,7 @@ char PhyphoxBLE::name[50] = "";
 Thread PhyphoxBLE::bleEventThread;
 Thread PhyphoxBLE::transferExpThread;
 
-uint8_t PhyphoxBLE::data_package[112] = {0};
+uint8_t PhyphoxBLE::data_package[182] = {0};
 uint8_t PhyphoxBLE::config_package[CONFIGSIZE] = {0};
 
 /*BLE stuff*/
@@ -165,7 +165,11 @@ void PhyphoxBleEventHandler::onConnectionComplete(const ble::ConnectionCompleteE
 	//	printer -> println("Connection with device");
 	//#endif	
     PhyphoxBLE::currentConnections+=1;
-
+    ble.gap().updateConnectionParameters(event.getConnectionHandle(),
+                                    ble::conn_interval_t(PhyphoxBLE::minConInterval),
+                                    ble::conn_interval_t(PhyphoxBLE::maxConInterval),
+                                    ble::slave_latency_t (PhyphoxBLE::slaveLatency),
+                                   ble::supervision_timeout_t(PhyphoxBLE::timeout));
 }
 
 #ifndef NDEBUG
