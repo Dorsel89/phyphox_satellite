@@ -160,7 +160,7 @@ class PhyphoxBLE
     static BLE& ble;
     static BatteryService batteryService;
     static inline uint16_t minConInterval = 6;	//7.5ms
-	static inline uint16_t maxConInterval = 20; //30ms
+	static inline uint16_t maxConInterval = 32; //30ms
 	static inline uint16_t slaveLatency = 0;
 	static inline uint16_t timeout = 50;
 	static uint16_t currentConnections;	

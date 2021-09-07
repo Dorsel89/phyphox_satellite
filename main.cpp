@@ -192,18 +192,18 @@ void bmpConfig(){
 void imuConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_ICM42605);
     IMU.setState(false, false);
-    ThisThread::sleep_for(5ms);
+    //ThisThread::sleep_for(5ms);
     //ThisThread::sleep_for(1s);
     IMU.init(configData[1], configData[3], configData[2], configData[4]);
     //ThisThread::sleep_for(2s);
     //ThisThread::sleep_for(1s);
     //IMU.init(AFS_2G, GFS_1000DPS , AODR_50Hz, GODR_50Hz);
-    ThisThread::sleep_for(5ms);
+    //ThisThread::sleep_for(5ms);
     //ThisThread::sleep_for(10s);
     //byte 0; bit 0 = enable accelerometer, bit 1 = enable gyroscope
     //IMU.setState(getNBit(configData[0], 0), getNBit(configData[0], 1)); 
     IMU.setState(1,1); 
-    ThisThread::sleep_for(5ms);
+    //ThisThread::sleep_for(5ms);
     imuTicker.attach(imuSetFlag, IMU.tickerInterval( configData[4])*1ms);
     //imuTicker.attach(imuSetFlag, 100ms);
     
@@ -420,17 +420,17 @@ int main()
         }
         if(PhyphoxBLE::currentConnections ==0){
             if(!deviceInSleepMode){
+                imuTicker.detach();
                 IMU.setState(false, false);
                 MLX.enable = false;
-                mlx.startSingleMeasurement(); // "disabled"
-                mlx.setOversampling(mlx90393_oversampling(0x03));
-                mlx.setFilter(mlx90393_filter(7));
+                mlx.exitMode();
                 thermocoupleTicker.detach();
                 mprlsTicker.detach();
-                imuTicker.detach();
+                
                 ds18b20Ticker.detach();
                 deviceInSleepMode = true;
                 bmp384.disable();
+                tickerShtc3.detach();
             }
             ThisThread::sleep_for(1s);            
             continue;
