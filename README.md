@@ -25,8 +25,7 @@ Byte | Settings
 4    | uint8_t x resolution: 0-3
 5    | uint8_t y resolution: 0-3
 6    | uint8_t z resolution: 0-3
-7-8  | int16_t threshold (µT) (TODO)
-9-10 | int16_t datapoints (µT) (TODO)
+7    | uint8_t number of datasets per packages
 
 ### Accelerometer/Gyroscope ICM42605 <a name="ICM42605"></a> ### 
 charateristic | uuid
