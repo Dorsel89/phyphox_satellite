@@ -59,7 +59,8 @@ class PhyphoxBLE
 
 	static const UUID experimentCharacteristicUUID;
 	
-    static const UUID icm42605DataCharacteristicUUID;
+    static const UUID icm42605DataAccCharacteristicUUID;
+    static const UUID icm42605DataGyrCharacteristicUUID;
 	static const UUID shtc3DataCharacteristicUUID;
     static const UUID bmp384DataCharacteristicUUID;
     static const UUID mlx90393DataCharacteristicUUID;
@@ -89,7 +90,8 @@ class PhyphoxBLE
 
 	/*BLE stuff*/
 	
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> icm42605DataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> icm42605DataAccCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> icm42605DataGyrCharacteristic;
 	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> icm42605ConfigCharacteristic;
 
     static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> shtc3DataCharacteristic;

@@ -159,13 +159,16 @@ void thermocoupleConfig(){
     if(configData[0]==1){
         Thermocouple.init();  
         Thermocouple.startTempConversion();   //TODO
-        thermocoupleTicker.attach(&thermocoupleSetFlag, 500ms);
+        thermocoupleTicker.attach(&thermocoupleSetFlag, configData[1]*100ms);
+    }else{
+        thermocoupleTicker.detach();
     }
+
 }
 void mprlsConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_MPRLS);
     if(configData[0]==1){
-        mprlsTicker.attach(&mprlsSetFlag, 1s);
+        mprlsTicker.attach(&mprlsSetFlag, 500ms);
     }else{
         mprlsTicker.detach();
     }
@@ -178,6 +181,8 @@ void ds18b20Config(){
         ds18b20.init();
         ds18b20.startTempConversion();   
         ds18b20Ticker.attach(&ds18b20SetFlag, 500ms);
+    }else{
+        ds18b20Ticker.detach();
     }
 }
 void bmpConfig(){
@@ -192,22 +197,21 @@ void bmpConfig(){
 void imuConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_ICM42605);
     IMU.setState(false, false);
-    //ThisThread::sleep_for(5ms);
-    //ThisThread::sleep_for(1s);
+
     IMU.init(configData[1], configData[3], configData[2], configData[4]);
-    //ThisThread::sleep_for(2s);
-    //ThisThread::sleep_for(1s);
-    //IMU.init(AFS_2G, GFS_1000DPS , AODR_50Hz, GODR_50Hz);
-    //ThisThread::sleep_for(5ms);
-    //ThisThread::sleep_for(10s);
     //byte 0; bit 0 = enable accelerometer, bit 1 = enable gyroscope
     //IMU.setState(getNBit(configData[0], 0), getNBit(configData[0], 1)); 
-    IMU.setState(1,1); 
-    //ThisThread::sleep_for(5ms);
-    imuTicker.attach(imuSetFlag, IMU.tickerInterval( configData[4])*1ms);
-    //imuTicker.attach(imuSetFlag, 100ms);
     
-    //IMU.setState(1,1);
+    if(configData[0]==true){
+        if(IMU.setState(1,1)){
+            NVIC_SystemReset();
+        }
+        imuTicker.attach(imuSetFlag, IMU.tickerInterval( configData[4])*1ms);
+    }else {
+        IMU.setState(0,0); 
+        imuTicker.detach();
+    }
+    
     global.reset(); 
 }
 void mlxConfig(){
@@ -220,7 +224,7 @@ void mlxConfig(){
     mlx.setResolution(MLX90393_X, mlx90393_resolution((uint8_t)configData[4]));
     mlx.setResolution(MLX90393_Y, mlx90393_resolution((uint8_t)configData[5]));
     mlx.setResolution(MLX90393_Z, mlx90393_resolution((uint8_t)configData[6]));
-    
+    mlx.numberPerPackage = (uint8_t)configData[7];
     //mlx.startBurstMode();
     
     //byte 0; bit 0: enable mlx all axis
@@ -275,9 +279,17 @@ void readLoadcell(){
 void readIMU(){
         uint8_t error;
         error = IMU.readData();
-        float copyValues[6] = {IMU.ax,IMU.ay,IMU.az,IMU.gx,IMU.gy,IMU.gz};
-        wait_us(50);
-        error = IMU.readData();
+        if(error == false){
+            float time = (float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
+            float accFloat[4]={IMU.ax,IMU.ay,IMU.az,time};
+            float gyrFloat[4]={IMU.gx,IMU.gy,IMU.gz,time};
+            PhyphoxBLE::write(accFloat,4,ID_ICM42605_ACC);
+            PhyphoxBLE::write(gyrFloat,4,ID_ICM42605_GYR);
+        }
+        //float copyValues[6] = {IMU.ax,IMU.ay,IMU.az,IMU.gx,IMU.gy,IMU.gz};
+        //wait_us(50);
+        //error = IMU.readData();
+        /*
         if(error == false){
             float values[7]= {IMU.ax,IMU.ay,IMU.az,IMU.gx,IMU.gy,IMU.gz,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
             for(int i=0; i<6;i++){
@@ -285,8 +297,9 @@ void readIMU(){
                     return;
                 }
             }
-            PhyphoxBLE::write(values,7,ID_ICM42605);
+            PhyphoxBLE::write(values,7,ID_ICM42605_ACC);
         }
+        */
         /*
 
         uint8_t status = IMU.status();
@@ -393,12 +406,14 @@ int main()
 
     // init SHTC3
     shtc3.init(&i2c);
-
+    
+    ThisThread::sleep_for(2s);
     //init mlx
     mlx_DataReady.rise(&mlxSetFlag);
     bmpDataReady.rise(&bmpSetFlag);
     mlx.begin_I2C(24, &i2c);//0x18
-    mlx.numberPerPackage = 8;
+    ThisThread::sleep_for(2s);
+    mlx.numberPerPackage = 1;
     mlx.exitMode();
     PhyphoxBLE::start("Satellit S0000");        
 
@@ -424,13 +439,13 @@ int main()
                 IMU.setState(false, false);
                 MLX.enable = false;
                 mlx.exitMode();
-                thermocoupleTicker.detach();
-                mprlsTicker.detach();
-                
-                ds18b20Ticker.detach();
-                deviceInSleepMode = true;
                 bmp384.disable();
                 tickerShtc3.detach();
+
+                thermocoupleTicker.detach();
+                mprlsTicker.detach();                
+                ds18b20Ticker.detach();
+                deviceInSleepMode = true;
             }
             ThisThread::sleep_for(1s);            
             continue;

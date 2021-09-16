@@ -11,6 +11,8 @@
 #define ID_MPRLS 6
 #define ID_THERMOCOUPLE 7
 #define ID_DS18B20 8
+#define ID_ICM42605_ACC 9
+#define ID_ICM42605_GYR 10
 
 static const char *phyphoxBleExperimentServiceUUID = "cddf0001-30f7-4671-8b43-5e40ba53514a";
 static const char *phyphoxBleExperimentCharacteristicUUID = "cddf0002-30f7-4671-8b43-5e40ba53514a";
@@ -18,29 +20,30 @@ static const char *phyphoxBleExperimentControlCharacteristicUUID = "cddf0003-30f
 
 static const char *phyphoxBleDataServiceUUID = "cddf1001-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleICM42605DataCharacteristicUUID = "cddf1002-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleICM42605ConfigCharacteristicUUID = "cddf1003-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleICM42605DataAccCharacteristicUUID = "cddf1002-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleICM42605DataGyrCharacteristicUUID = "cddf1003-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleICM42605ConfigCharacteristicUUID = "cddf1004-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleSHTC3DataCharacteristicUUID = "cddf1004-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleSHTC3ConfigCharacteristicUUID = "cddf1005-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleSHTC3DataCharacteristicUUID = "cddf1005-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleSHTC3ConfigCharacteristicUUID = "cddf1006-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleBMP384DataCharacteristicUUID = "cddf1006-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleBMP384ConfigCharacteristicUUID = "cddf1007-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleBMP384DataCharacteristicUUID = "cddf1007-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleBMP384ConfigCharacteristicUUID = "cddf1008-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleMLX90393DataCharacteristicUUID = "cddf1008-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleMLX90393ConfigCharacteristicUUID = "cddf1009-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleMLX90393DataCharacteristicUUID = "cddf1009-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleMLX90393ConfigCharacteristicUUID = "cddf100a-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleLOADCELLDataCharacteristicUUID = "cddf100a-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleLOADCELLConfigCharacteristicUUID = "cddf100b-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleLOADCELLDataCharacteristicUUID = "cddf100b-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleLOADCELLConfigCharacteristicUUID = "cddf100c-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleMPRLSDataCharacteristicUUID = "cddf100c-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleMPRLSConfigCharacteristicUUID = "cddf100d-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleMPRLSDataCharacteristicUUID = "cddf100d-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleMPRLSConfigCharacteristicUUID = "cddf100e-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleTHERMOCOUPLEDataCharacteristicUUID = "cddf100e-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleTHERMOCOUPLEConfigCharacteristicUUID = "cddf100f-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleTHERMOCOUPLEDataCharacteristicUUID = "cddf100f-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleTHERMOCOUPLEConfigCharacteristicUUID = "cddf1010-30f7-4671-8b43-5e40ba53514a";
 
-static const char *phyphoxBleDS18B20DataCharacteristicUUID = "cddf1010-30f7-4671-8b43-5e40ba53514a";
-static const char *phyphoxBleDS18B20ConfigCharacteristicUUID = "cddf1011-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleDS18B20DataCharacteristicUUID = "cddf1011-30f7-4671-8b43-5e40ba53514a";
+static const char *phyphoxBleDS18B20ConfigCharacteristicUUID = "cddf1012-30f7-4671-8b43-5e40ba53514a";
 
 static const char *phyphoxBleHWConfigServiceUUID = "cddf9021-30f7-4671-8b43-5e40ba53514a";
 static const char *phyphoxBleHWConfigCharacteristicUUID = "cddf9022-30f7-4671-8b43-5e40ba53514a";
