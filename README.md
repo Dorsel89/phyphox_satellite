@@ -16,12 +16,16 @@
 ### Satellite  Magnetometer MLX90393 <a name="MLX90393"></a> ###
 charateristic | uuid
 --------------|-----
-data          | cddf1009-30f7-4671-8b43-5e40ba53514a
+data (repeatable)         | cddf1009-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | x type: float
+byte 4-7          | y type: float
+byte 8-11         | z type: float
+byte 12-15        | t type: float
 config        | cddf100a-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
 -----|---------
-0    | Bit 0: enable magnetometer <br> Bit 1: enable burst mode (TODO) <br> Bit 2: rising edge (for burst mode) (TODO)
+0    | enable magnetometer
 1    | uint8_t gain-mode: <br> 0: 5x <br> 1: 4x <br> 2: 3x <br> 3: 2.5x <br> 4: 2x <br> 5: 1.667x <br> 6: 1.333x <br> 7: 1x
 2    | uint8_t digital filter: 0-7
 3    | uint8_t oversampling: 0-3
@@ -34,12 +38,20 @@ Byte | Settings
 charateristic | uuid
 --------------|-----
 acc data          | cddf1002-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | x type: float
+byte 4-7          | y type: float
+byte 8-11         | z type: float
+byte 12-15        | t type: float
 gyr data          | cddf1003-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | x type: float
+byte 4-7          | y type: float
+byte 8-11         | z type: float
+byte 12-15        | t type: float
 config        | cddf1004-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
 -----|---------
-0    | Bit 0: enable accelerometer <br> Bit 1: enable gyroscope <br> Bit 2: enable burst mode (TODO)<br>  Bit 3: rising edge (for burst mode) (TODO)
+0    | Bit 0: enable accelerometer <br> Bit 1: enable gyroscope
 1    | uint8_t accelerometer range <br> 16G: 0 <br> 8G: 1 <br> 4G: 2 <br> 2G: 3
 2    | uint8_t accelerometer rate <br> 8000Hz: 0x03 <br> 4000Hz: 0x04 <br> 2000Hz: 0x05 <br> 1000Hz: 0x06 <br> 200Hz: 0x07 <br> 100Hz: 0x08 <br> 50Hz: 0x09 <br> 25Hz: 0x0A <br> 6.25Hz: 0x0B <br> 6.25Hz: 0x0C <br> 3.12Hz: 0x0D <br> 1.5625Hz: 0x0E <br> 500Hz: 0x0F
 3    | uint8_t gyroscope range <br> 2000DPS: 0x00 <br> 1000DPS: 0x01 <br> 500DPS: 0x02 <br> 250DPS: 0x03 <br> 125DPS: 0x04 <br> 62.5DPS: 0x05 <br> 31.25DPS: 0x06 <br> 15.125DPS: 0x07
@@ -49,6 +61,9 @@ Byte | Settings
 charateristic | uuid
 --------------|-----
 data          | cddf1005-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | temperature type: float
+byte 4-7          | humidity type: float
+byte 8-11         | t type: float
 config        | cddf1006-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -60,6 +75,9 @@ Byte | Settings
 charateristic | uuid
 --------------|-----
 data          | cddf1007-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | pressure type: float
+byte 4-7          | temperature type: float
+byte 8-11         | t type: float
 config        | cddf1008-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -73,6 +91,8 @@ Byte | Settings
 charateristic | uuid
 --------------|-----
 data          | cddf100f-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | temperature type: float
+byte 4-7          | t type: float
 config        | cddf1010-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -84,6 +104,8 @@ Byte | Settings
 charateristic | uuid
 --------------|-----
 data          | cddf1011-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | temperature type: float
+byte 4-7          | t type: float
 config        | cddf1012-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -95,6 +117,8 @@ Byte | Settings
 charateristic | uuid
 --------------|-----
 data          | cddf100d-30f7-4671-8b43-5e40ba53514a
+byte 0-3          | pressure type: float
+byte 4-7          | t type: float
 config        | cddf100e-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
