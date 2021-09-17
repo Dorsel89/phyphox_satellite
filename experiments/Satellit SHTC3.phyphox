@@ -11,11 +11,11 @@
     </data-containers>
     <input>
         <bluetooth editor:uuid="303"  name="Sat"  mode="notification" rate="1" subscribeOnStart="false">
-            <config char="cddf1005-30f7-4671-8b43-5e40ba53514a" conversion="hexadecimal">01C8</config>
-            <output char="cddf1004-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="0">Output 1</output>
-            <output char="cddf1004-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="4">Output 2</output>
-            <output char="cddf1004-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="8">Output 3</output>
-            <output char="cddf1004-30f7-4671-8b43-5e40ba53514a" conversion="string" extra="time">Output 4</output>
+            <config char="cddf1006-30f7-4671-8b43-5e40ba53514a" conversion="hexadecimal">01C8</config>
+            <output char="cddf1005-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="0">Output 1</output>
+            <output char="cddf1005-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="4">Output 2</output>
+            <output char="cddf1005-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian" offset="8">Output 3</output>
+            <output char="cddf1005-30f7-4671-8b43-5e40ba53514a" conversion="string" extra="time">Output 4</output>
         </bluetooth>
     </input>
     <output>
