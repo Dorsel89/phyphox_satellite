@@ -12,6 +12,30 @@
 3. [Specifications](#Specification)
 4. [Test-Results](#Test-Results)
 
+## 1. Configuration <a name="config"></a>
+
+**BMP384 Pressure/Temperature** <br>
+![phyphox Experiments](experiments/bmp384.png?raw=true "BMP384")
+
+**MLX90393 Magnetic field** <br>
+![phyphox Experiments](experiments/mlx90393.png?raw=true "MLX90393")
+
+**ICM42605 Acc/Gyr** <br>
+![phyphox Experiments](experiments/icm42605.png?raw=true "ICM42605")
+
+**SHTC3 Temperature/Humidity** <br>
+![phyphox Experiments](experiments/shtc3.png?raw=true "SHTC3")
+
+**DS18B20 Temperature I** <br>
+![phyphox Experiments](experiments/ds18b20.png?raw=true "DS18B20")
+
+**Thermocouple Temperature II** <br>
+![phyphox Experiments](experiments/thermocouple.png?raw=true "Thermocouple")
+
+**MPRLS Druck** <br>
+![phyphox Experiments](experiments/mprls.png?raw=true "MPRLS")
+
+
 ## 2. Configuration <a name="config"></a>
 ### Satellite  Magnetometer MLX90393 <a name="MLX90393"></a> ###
 charateristic | uuid
