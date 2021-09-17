@@ -62,9 +62,41 @@ Byte | Settings
 -----|---------
 0    | Bit 0: enable pressure sensor <br>  Bit 1: enable temperature sensor
 1    | uint8_t pressure oversampling: <br> no oversampling 0x00 <br> 2x: 0x01 <br> 4x: 0x02 <br> 8x: 0x03 <br> 16x: 0x04 <br> 32x: 0x05 <br>
-2    | uint8_t temperature oversampling: <br> no oversampling 0x00 <br> 2x: 0x01 <br> 4x: 0x02 <br> 8x: 0x03 <br> 16x: 0x04 <br> 32x: 0x05 <br>
 3    | uint8_t iir filter coefficient: <br> disable: 0x00 <br> 1: 0x01 <br> 3: 0x02 <br> 7: 0x03 <br> 15: 0x04 <br> 31: 0x05 <br> 63: 0x06 <br> 127: 0x07
 4    | uint8_t data rate: <br> 200Hz: 0x00 <br> 100Hz: 0x01 <br> 50Hz: 0x02 <br> 25Hz: 0x03 <br> 12.5Hz: 0x04 <br> 6.25Hz: 0x05 <br> 3.1Hz: 0x06 <br> 1.5Hz: 0x07 <br> 0.78Hz: 0x08 <br> 0.39Hz: 0x09 <br> 0_2Hz: 0x0A
+
+### Temperature  Thermocouple  <a name="Thermocouple"></a> ###
+charateristic | uuid
+--------------|-----
+data          | cddf100f-30f7-4671-8b43-5e40ba53514a
+config        | cddf1010-30f7-4671-8b43-5e40ba53514a
+
+Byte | Settings
+-----|---------
+0    | uint8_t enable sensor
+1    | uint8_t measurement interval in 100ms (0x03 equals 300ms measurement interval)
+
+### Temperature  1Wire DS18B20  <a name="DS18B20"></a> ###
+charateristic | uuid
+--------------|-----
+data          | cddf1011-30f7-4671-8b43-5e40ba53514a
+config        | cddf1012-30f7-4671-8b43-5e40ba53514a
+
+Byte | Settings
+-----|---------
+0    | uint8_t enable sensor
+1    | uint8_t measurement interval in 1000ms (0x03 equals 3000ms measurement interval, 0x00 represents the minimal measurement interval of 750ms)
+
+### Pressure MPRLS  <a name="MPRLS"></a> ###
+charateristic | uuid
+--------------|-----
+data          | cddf100d-30f7-4671-8b43-5e40ba53514a
+config        | cddf100e-30f7-4671-8b43-5e40ba53514a
+
+Byte | Settings
+-----|---------
+0    | uint8_t enable sensor
+1    | uint8_t measurement interval in 10ms (0x03 equals 30ms measurement interval)
 
 ## 3. Specifications <a name="Specification"></a>
 

@@ -26,7 +26,11 @@
             "target.console-uart-flow-control": null,
             "platform.crash-capture-enabled": true,
             "platform.fatal-error-auto-reboot-enabled": true,
-            "platform.error-reboot-max": 999
+            "platform.error-reboot-max": 999,
+            "target.components_add": ["FLASHIAP", "STORAGE"],
+            "target.device_has": ["FLASH"],
+            "storage.storage_type": "TDB_INTERNAL",
+            "target.restrict_size": "0x0FE000"            
         }
     }
 }

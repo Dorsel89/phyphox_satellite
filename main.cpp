@@ -16,6 +16,7 @@
 #include <cstdint>
 #include "MLX90393.h"
 #include "bmp384.h"
+#include "flashUtility.h"
 
 
 DigitalOut LED_R(LEDRed);
@@ -27,12 +28,13 @@ Ticker thermocoupleTicker;
 Ticker mprlsTicker;
 Ticker imuTicker;
 
+uint32_t flashAddress = 0x0FE000;
+FLASH myCONFIG(flashAddress);
 
 const int conSets = 100;
 float dataSet[conSets];
 float dataSetTime[conSets];
 uint16_t dataSetNumber = 0;
-
 
 volatile bool flagBattery = false;
 volatile bool flagSHTC3 = false;
@@ -70,7 +72,6 @@ MS5607 barometer(&i2c);
 MLX90393 mlx;
 SHTC3 shtc3;
 MPRLS mprls;
-//DigitalOut test(ONEWIRE);
 Onewire myOneWire(ONEWIRE);
 MAX31850 Thermocouple(&myOneWire);
 DS18B20 ds18b20(&myOneWire);
@@ -168,7 +169,10 @@ void thermocoupleConfig(){
 void mprlsConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_MPRLS);
     if(configData[0]==1){
-        mprlsTicker.attach(&mprlsSetFlag, 500ms);
+        if(configData[1]==0){
+            configData[1] = 1;
+        }
+        mprlsTicker.attach(&mprlsSetFlag, configData[1]*10ms);
     }else{
         mprlsTicker.detach();
     }
@@ -179,15 +183,24 @@ void ds18b20Config(){
     PhyphoxBLE::read(&configData[0],20,ID_DS18B20);
     if(configData[0]==1){
         ds18b20.init();
-        ds18b20.startTempConversion();   
-        ds18b20Ticker.attach(&ds18b20SetFlag, 500ms);
+        ds18b20.startTempConversion();
+        int interval =0;
+        if(configData[1] == 0)   {
+            interval = 750;
+        }else {
+            interval = configData[1]*1000;
+        }
+        ds18b20Ticker.attach(&ds18b20SetFlag, interval*1ms);
     }else{
         ds18b20Ticker.detach();
     }
 }
 void bmpConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_BMP384);
+    
     if(configData[0]==1){
+        bmp384.changeSettings(configData[1],configData[2],configData[3]);
+        ThisThread::sleep_for(100ms);
         bmp384.enable();
     }else {
         bmp384.disable();
@@ -225,7 +238,6 @@ void mlxConfig(){
     mlx.setResolution(MLX90393_Y, mlx90393_resolution((uint8_t)configData[5]));
     mlx.setResolution(MLX90393_Z, mlx90393_resolution((uint8_t)configData[6]));
     mlx.numberPerPackage = (uint8_t)configData[7];
-    //mlx.startBurstMode();
     
     //byte 0; bit 0: enable mlx all axis
     if(getNBit(configData[0], 0)){
@@ -235,10 +247,7 @@ void mlxConfig(){
         MLX.enable = false;
         mlx.exitMode();
     }    
-    //MLX.burst = getNBit(configData[0], 1);
-    //MLX.rising = getNBit(configData[0], 2);
-    //MLX.threshold = configData[8] << 8 | configData[7];
-    //MLX.datapoints = configData[10] << 8 | configData[9];   
+
 }
 void shtc3Config(){
     //read config and set ticker according to datarate
@@ -286,31 +295,6 @@ void readIMU(){
             PhyphoxBLE::write(accFloat,4,ID_ICM42605_ACC);
             PhyphoxBLE::write(gyrFloat,4,ID_ICM42605_GYR);
         }
-        //float copyValues[6] = {IMU.ax,IMU.ay,IMU.az,IMU.gx,IMU.gy,IMU.gz};
-        //wait_us(50);
-        //error = IMU.readData();
-        /*
-        if(error == false){
-            float values[7]= {IMU.ax,IMU.ay,IMU.az,IMU.gx,IMU.gy,IMU.gz,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-            for(int i=0; i<6;i++){
-                if(copyValues[i]==!values[i]){
-                    return;
-                }
-            }
-            PhyphoxBLE::write(values,7,ID_ICM42605_ACC);
-        }
-        */
-        /*
-
-        uint8_t status = IMU.status();
-        if(getNBit(status, 3)){
-            error = IMU.readData();
-            if(error == false){
-                float values[7]= {IMU.ax,IMU.ay,IMU.az,IMU.gx,IMU.gy,IMU.gz,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-                PhyphoxBLE::write(values,7,ID_ICM42605);
-            }
-        }   
-        */
 }
 
 void readTHERMOCOUPLE(){
@@ -337,21 +321,41 @@ void readMLX(){
         mlx.currentPackage = 0;
     }
 }
+void receivedSN() {           // get data from phyphox app
+    uint8_t mySNBufferArray[20];
+    PhyphoxBLE::readHWConfig(&mySNBufferArray[0],20);
+    if(mySNBufferArray[2]){
+        //restart to get name
+        NVIC_SystemReset();
+    }
+    uint16_t intSN[1];
+    intSN[0] = mySNBufferArray[1] << 8 | mySNBufferArray[0];
+    myCONFIG.writeSN(intSN);
+    
+  }
+ void getDeviceName(char* myDeviceName){
+    uint16_t mySN[1];
+     
+     myCONFIG.readSN(mySN);
+     
+     if(mySN[0] == 0xFFFF){
+         mySN[0]=0;
+     }
+     
+    
+    std::string s = std::to_string(mySN[0]);
+    if ( s.size() < 4 ){
+        s = std::string(4 - s.size(), '0') + s;
+    }
+    std::string S;
+    S.append("Satellit S");
+    S.append(s);
+    strcpy(myDeviceName, S.c_str());  
+ }
+
 void checkBattery(){
     flagBattery = true;
 }
-/*    
-struct FLOATBUFFER{
-    float DATABUFFER[1000];
-    int valuesStored;
-};
-
-struct FLOATBUFFER myFloatbuffer;
-
-void burstMode(float* newDataPoints,int numberOfDataPoints){
-    myFloatbuffer.DATABUFFER[myFloatbuffer.valuesStored*numberOfDataPoints]
-}
-*/
 
 void initADS1231(){
     /*
@@ -378,7 +382,7 @@ int main()
     
     global.reset();
     global.start();
-    i2c.frequency(400000);
+    i2c.frequency(200000);
     NRF_POWER->DCDCEN = 1;
     NRF_UICR->NFCPINS = 0x00000000;
     
@@ -396,6 +400,8 @@ int main()
     PhyphoxBLE::mprlsHandler = &mprlsConfig;
     PhyphoxBLE::ds18b20Handler = &ds18b20Config;
     PhyphoxBLE::thermocoupleHandler = &thermocoupleConfig;
+
+    PhyphoxBLE::hwConfigHandler = &receivedSN;
 
     struct sensor MLX = {0,0,0,0,true};
 
@@ -415,19 +421,22 @@ int main()
     ThisThread::sleep_for(2s);
     mlx.numberPerPackage = 1;
     mlx.exitMode();
-    PhyphoxBLE::start("Satellit S0000");        
+    char DEVICENAME[30];
+    getDeviceName(DEVICENAME);
+    PhyphoxBLE::start(DEVICENAME);        
 
     Ticker BatteryTicker;
-    BatteryTicker.attach(checkBattery,200ms);
+    BatteryTicker.attach(checkBattery,1s);
     
     if(bmpAvailable){
-        bmp384.init();
-        bmp384.disable();   //TODO   
-        
+        bmp384.init(0x03,0x03,0x03);
+        bmp384.disable();     
     }
+
     mprls.setI2C(0x18 << 1 ,&i2c);  //TODO
     //EN_LOADCELL = 1;
     //initADS1231();
+    
     while (true) {
         if(PhyphoxBLE::currentConnections >0 && deviceInSleepMode){
             deviceInSleepMode=false;
