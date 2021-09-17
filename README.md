@@ -20,7 +20,7 @@ data (repeatable)         | cddf1009-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | x type: float
 byte 4-7          | y type: float
 byte 8-11         | z type: float
-byte 12-15        | t type: float
+byte 12-15        | timestamp type: float
 config        | cddf100a-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -41,12 +41,12 @@ acc data          | cddf1002-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | x type: float
 byte 4-7          | y type: float
 byte 8-11         | z type: float
-byte 12-15        | t type: float
+byte 12-15        | timestamp type: float
 gyr data          | cddf1003-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | x type: float
 byte 4-7          | y type: float
 byte 8-11         | z type: float
-byte 12-15        | t type: float
+byte 12-15        | timestamp type: float
 config        | cddf1004-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -63,7 +63,7 @@ charateristic | uuid
 data          | cddf1005-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | temperature type: float
 byte 4-7          | humidity type: float
-byte 8-11         | t type: float
+byte 8-11         | timestamp type: float
 config        | cddf1006-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -77,7 +77,7 @@ charateristic | uuid
 data          | cddf1007-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | pressure type: float
 byte 4-7          | temperature type: float
-byte 8-11         | t type: float
+byte 8-11         | timestamp type: float
 config        | cddf1008-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -92,7 +92,7 @@ charateristic | uuid
 --------------|-----
 data          | cddf100f-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | temperature type: float
-byte 4-7          | t type: float
+byte 4-7          | timestamp type: float
 config        | cddf1010-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -105,7 +105,7 @@ charateristic | uuid
 --------------|-----
 data          | cddf1011-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | temperature type: float
-byte 4-7          | t type: float
+byte 4-7          | timestamp type: float
 config        | cddf1012-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
@@ -118,7 +118,7 @@ charateristic | uuid
 --------------|-----
 data          | cddf100d-30f7-4671-8b43-5e40ba53514a
 byte 0-3          | pressure type: float
-byte 4-7          | t type: float
+byte 4-7          | timestamp type: float
 config        | cddf100e-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
