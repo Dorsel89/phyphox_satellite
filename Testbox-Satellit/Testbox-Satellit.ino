@@ -1,5 +1,8 @@
 #include <SD.h>
 
+bool printData = false;
+bool waermelehreConnected = true;
+
 #define CONFIGMODE 0
 
 #define SHTC_INIT 1
@@ -14,8 +17,8 @@
 #define IMU_INIT 7
 #define IMU_MEASURE 8
 
-#define DS18_INIT 9
-#define DS18_MEASURE 10
+#define DS18B20_INIT 9
+#define DS18B20_MEASURE 10
 
 #define TC_INIT 11
 #define TC_MEASURE 12
@@ -39,8 +42,20 @@ float LIMITS_MLX[2]={45.0,5};
 // acceleration target,maxDeviation (values are in g )
 float LIMITS_IMU[2]={1,0.05};
 
-const int nDatapoints = 50;
+//MPRLS (pressure)
+// mprls pressure target,maxDeviation 
+float LIMITS_MPRLS[2]={990,5};
 
+//Thermocouple (pressure)
+// temperature target,maxDeviation 
+float LIMITS_TC[2]={25,5};
+
+//DS18B20 (pressure)
+//temperature target,maxDeviation 
+float LIMITS_DS18B20[2]={25,5};
+
+const int nDatapoints = 50;
+const int nDatapointsDS18B20 = 10;
 uint16_t SERIALNUMBER[1];
 
 File root;
@@ -88,15 +103,9 @@ static BLEUUID    ds18b20ConfigUUID("cddf1012-30f7-4671-8b43-5e40ba53514a");
 
 static BLEUUID    configHWUUID("cddf9022-30f7-4671-8b43-5e40ba53514a");
 
-bool printData = true;
-
-bool shortInit=false;
-bool longInit=false;
-
 uint8_t configData[20] = {0};
 
 int volatile dataPointsRequired =0;
-
 
 bool deviceWorks[2] = {false};
 
@@ -132,14 +141,15 @@ static BLERemoteCharacteristic* shtcConfigRemoteCharacteristic;
 static BLERemoteCharacteristic* tcRemoteCharacteristic;
 static BLERemoteCharacteristic* tcConfigRemoteCharacteristic;
 
-static BLERemoteCharacteristic* wlpressureRemoteCharacteristic;
-static BLERemoteCharacteristic* wlpressureConfigRemoteCharacteristic;
+static BLERemoteCharacteristic* wlPressureRemoteCharacteristic;
+static BLERemoteCharacteristic* wlPressureConfigRemoteCharacteristic;
 
 static BLERemoteCharacteristic* ds18b20RemoteCharacteristic;
 static BLERemoteCharacteristic* ds18b20ConfigRemoteCharacteristic;
 
 static BLERemoteCharacteristic* lcRemoteCharacteristic;
 static BLERemoteCharacteristic* lcConfigRemoteCharacteristic;
+
 
 static BLEAdvertisedDevice* myDevice;
 uint8_t dataReceived[20] = {0};
@@ -153,7 +163,6 @@ float volatile dataArray[maxFloatValues][nDatapoints];
 
 static void shtcCallback(
   BLERemoteCharacteristic* pBLERemoteCharacteristic,uint8_t* pData,size_t length,bool isNotify) {
-  Serial.println("shtccallback");
   if(currentMode == SHTC_MEASURE && currentDatapoints<nDatapoints){
     float myfloats[3];
     memcpy(&myfloats[0], pData, 12);
@@ -174,7 +183,6 @@ static void shtcCallback(
 }
 static void bmpCallback(
   BLERemoteCharacteristic* pBLERemoteCharacteristic,uint8_t* pData,size_t length,bool isNotify) {
-  Serial.println("bmpcallback");
   if(currentMode == BMP_MEASURE && currentDatapoints<nDatapoints){
     float myfloats[3];
     memcpy(&myfloats[0], pData, 12);
@@ -195,7 +203,6 @@ static void bmpCallback(
 }
 static void mlxCallback(
   BLERemoteCharacteristic* pBLERemoteCharacteristic,uint8_t* pData,size_t length,bool isNotify) {
-  Serial.println("mlxcallback");
   if(currentMode == MLX_MEASURE && currentDatapoints<nDatapoints){
     float myfloats[4];
     memcpy(&myfloats[0], pData, 16);
@@ -220,7 +227,6 @@ static void mlxCallback(
 }
 static void imuCallback(
   BLERemoteCharacteristic* pBLERemoteCharacteristic,uint8_t* pData,size_t length,bool isNotify) {
-  Serial.println("imucallback");
   if(currentMode == IMU_MEASURE && currentDatapoints<nDatapoints){
     float myfloats[7];
     memcpy(&myfloats[0], pData, 7*4);
@@ -243,12 +249,61 @@ static void imuCallback(
     return;
   }
 }
+static void tcCallback(
+  BLERemoteCharacteristic* pBLERemoteCharacteristic,uint8_t* pData,size_t length,bool isNotify) {
+  if(currentMode == TC_MEASURE && currentDatapoints<nDatapoints){
+    float myfloats[2];
+    memcpy(&myfloats[0], pData, 2*4);
+    if(printData){
+      Serial.print("Thermocouple: ");
+      Serial.print(myfloats[0]);
+      Serial.print(" ");
+      Serial.println(myfloats[1]);    
+      }
+    dataArray[0][currentDatapoints]=myfloats[0];
+    dataArray[1][currentDatapoints]=myfloats[1];
+    currentDatapoints++;
+    return;
+  }
+}
+static void ds18b20Callback(
+  BLERemoteCharacteristic* pBLERemoteCharacteristic,uint8_t* pData,size_t length,bool isNotify) {
+  if(currentMode == DS18B20_MEASURE && currentDatapoints<nDatapointsDS18B20){
+    float myfloats[2];
+    memcpy(&myfloats[0], pData, 2*4);
+    if(printData){
+      Serial.print("DS18B20: ");
+      Serial.print(myfloats[0]);
+      Serial.print(" ");
+      Serial.println(myfloats[1]);    
+      }
+    dataArray[0][currentDatapoints]=myfloats[0];
+    dataArray[1][currentDatapoints]=myfloats[1];
+    currentDatapoints++;
+    return;
+  }
+}
+static void mprlsCallback(
+  BLERemoteCharacteristic* pBLERemoteCharacteristic,uint8_t* pData,size_t length,bool isNotify) {
+  if(currentMode == MPRLS_MEASURE && currentDatapoints<nDatapoints){
+    float myfloats[2];
+    memcpy(&myfloats[0], pData, 2*4);
+    if(printData){
+      Serial.print("MPRLS: ");
+      Serial.print(myfloats[0]);
+      Serial.print(" ");
+      Serial.println(myfloats[1]);    
+      }
+    dataArray[0][currentDatapoints]=myfloats[0];
+    dataArray[1][currentDatapoints]=myfloats[1];
+    currentDatapoints++;
+    return;
+  }
+}
 class MyClientCallback : public BLEClientCallbacks {
     void onConnect(BLEClient* pclient) {
       currentMode = 0;
       snOnSDCard=false;
-      shortInit = false;
-      longInit=false;
     }
 
     void onDisconnect(BLEClient* pclient) {
@@ -300,7 +355,16 @@ bool connectToServer() {
   
   mlxRemoteCharacteristic = dataRemoteService->getCharacteristic(mlxDataUUID);
   mlxConfigRemoteCharacteristic = dataRemoteService->getCharacteristic(mlxConfigUUID);
-  
+
+  wlPressureRemoteCharacteristic = dataRemoteService->getCharacteristic(wlPressureDataUUID);
+  wlPressureConfigRemoteCharacteristic = dataRemoteService->getCharacteristic(wlPressureConfigUUID);
+
+  ds18b20RemoteCharacteristic = dataRemoteService->getCharacteristic(ds18b20DataUUID);
+  ds18b20ConfigRemoteCharacteristic = dataRemoteService->getCharacteristic(ds18b20ConfigUUID);
+
+  tcRemoteCharacteristic = dataRemoteService->getCharacteristic(tcDataUUID);
+  tcConfigRemoteCharacteristic = dataRemoteService->getCharacteristic(tcConfigUUID);
+
   hwRemoteCharacteristic = hwRemoteService->getCharacteristic(configHWUUID);
   
   if (hwRemoteCharacteristic == nullptr) {
@@ -323,11 +387,11 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     void onResult(BLEAdvertisedDevice advertisedDevice) {
       //Serial.print("BLE Advertised Device found: ");
       //Serial.println(advertisedDevice.toString().c_str());
-      String currentName = advertisedDevice.toString().c_str();
-      //Serial.println(currentName);
+      String currentName = advertisedDevice.getName().c_str();
+      //advertisedDevice.toString().c_str();
       // We have found a device, let us now see if it contains the service we are looking for.
-      //if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(serviceUUID) && currentName == DEFAULTDEVICENAME) {
-        if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(serviceHWUUID)) {
+      if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(serviceHWUUID) && currentName == DEFAULTDEVICENAME) {
+      //  if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(serviceHWUUID)) {
         BLEDevice::getScan()->stop();
         myDevice = new BLEAdvertisedDevice(advertisedDevice);
         doConnect = true;
@@ -345,9 +409,7 @@ void setup() {
   Serial.println("");
   Serial.println("");
   Serial.println("STARTE SATELLIT TESTCENTER");
-  BLEDevice::setMTU(40);
   BLEDevice::init("");
-  BLEDevice::setMTU(40);
   //pinMode(LED_BUILTIN,OUTPUT);
   pinMode(32,  OUTPUT );
   pinMode(33, OUTPUT);
@@ -359,13 +421,10 @@ void setup() {
   digitalWrite(25, 1);
   digitalWrite(26, 1);
 
-  
   if (!SD.begin(4)) {
     Serial.println("sd initialization failed!");
     return;
   }
-  
-
   storedDataFiles = countFiles();
 
   Serial.print(storedDataFiles);
@@ -407,7 +466,6 @@ void loop() {
         return;
       }
     if(currentMode==SHTC_INIT){
-      Serial.println("SHTC_INIT");
       configData[0] = 1;
       configData[1] = 0x04;
       shtcConfigRemoteCharacteristic->writeValue(&configData[0], 20);
@@ -430,9 +488,11 @@ void loop() {
       return;
       }
     if(currentMode==BMP_INIT){
-      Serial.println("BMP_INIT");
       configData[0] = 1;
-      configData[1] = 0x00;
+      configData[1] = 0x03;
+      configData[2] = 0x03;
+      configData[3] = 0x03;
+      
       bmpConfigRemoteCharacteristic->writeValue(&configData[0], 20);
       currentDatapoints=0;
       currentMode = BMP_MEASURE; 
@@ -440,7 +500,6 @@ void loop() {
       return;        
       }
     if(currentMode==BMP_MEASURE){
-      //Serial.println(currentDatapoints);
       if(currentDatapoints>=nDatapoints){
         configData[0] = 0;
         configData[1] = 0x00;
@@ -454,7 +513,6 @@ void loop() {
       }            
       
     if(currentMode==MLX_INIT){
-      Serial.println("MLX_INIT");
       configData[0] = 1;
       configData[1] = 0x03;
       configData[2] = 0x06;
@@ -482,7 +540,6 @@ void loop() {
       return;
       }
     if(currentMode==IMU_INIT){
-      Serial.println("IMU_INIT");
       configData[0] = 0x01;
       configData[1] = 0x03;
       configData[2] = 0x0A;
@@ -496,18 +553,89 @@ void loop() {
       return;        
       }
     if(currentMode==IMU_MEASURE){
-      //Serial.println(currentDatapoints);
       if(currentDatapoints>=nDatapoints){
         configData[0] = 0;
         imuConfigRemoteCharacteristic->writeValue(&configData[0], 20);
         checkLimits();
         saveData(4);
+        if(waermelehreConnected){
+          currentMode = MPRLS_INIT;
+        }else{
+           currentMode = 99;
+           uint8_t mySNArray[3];
+            memcpy(&mySNArray[0],&SERIALNUMBER[0],2);
+            mySNArray[2] = 1;
+            hwRemoteCharacteristic->writeValue(&mySNArray[0], 3);   
+        }
+        
+        return;
+        }  
+      return;
+      }                 
+    if(currentMode==MPRLS_INIT){
+      configData[0] = 0x01;
+      configData[1] = 0x14;
+      wlPressureConfigRemoteCharacteristic->writeValue(&configData[0], 20);
+      currentDatapoints=0;
+      currentMode = MPRLS_MEASURE; 
+      wlPressureRemoteCharacteristic->registerForNotify(mprlsCallback);
+      return;        
+      }
+    if(currentMode==MPRLS_MEASURE){
+      if(currentDatapoints>=nDatapoints){
+        configData[0] = 0;
+        wlPressureConfigRemoteCharacteristic->writeValue(&configData[0], 20);
+        checkLimits();
+        saveData(2);
+        currentMode = TC_INIT;
+        return;
+        }
+      return;
+      }
+    if(currentMode==TC_INIT){
+      configData[0] = 0x01;
+      configData[1] = 0x01;
+      tcConfigRemoteCharacteristic->writeValue(&configData[0], 20);
+      currentDatapoints=0;
+      currentMode = TC_MEASURE; 
+      tcRemoteCharacteristic->registerForNotify(tcCallback);
+      return;        
+      }
+    if(currentMode==TC_MEASURE){
+      if(currentDatapoints>=nDatapoints){
+        configData[0] = 0;
+        tcConfigRemoteCharacteristic->writeValue(&configData[0], 20);
+        checkLimits();
+        saveData(2);
+        currentMode = DS18B20_INIT;
+        return;
+        }
+      return;
+      }
+    if(currentMode==DS18B20_INIT){
+      configData[0] = 0x01;
+      configData[1] = 0x00;
+      ds18b20ConfigRemoteCharacteristic->writeValue(&configData[0], 20);
+      currentDatapoints=0;
+      currentMode = DS18B20_MEASURE; 
+      ds18b20RemoteCharacteristic->registerForNotify(ds18b20Callback);      
+      return;        
+      }
+    if(currentMode==DS18B20_MEASURE){
+      if(currentDatapoints>=nDatapointsDS18B20){
+        configData[0] = 0;
+        ds18b20ConfigRemoteCharacteristic->writeValue(&configData[0], 20);
+        checkLimits();
+        saveData(4);
         currentMode = 99;
+        uint8_t mySNArray[3];
+        memcpy(&mySNArray[0],&SERIALNUMBER[0],2);
+        mySNArray[2] = 1;
+        hwRemoteCharacteristic->writeValue(&mySNArray[0], 3); 
         return;
         }
       return;
       }                 
-   
   } else if (doScan) {
     BLEDevice::getScan()->start(0);  // this is just eample to start scan after disconnect, most likely there is better way to do it in arduino
   }
@@ -582,6 +710,9 @@ void getSN(){
       Serial.println("");
       SerialNumberString = SN;
       snOnSDCard = true;
+
+      root = SD.open("/satellit/" +SerialNumberString+"_"+ Address + ".txt", FILE_WRITE);
+      root.close();
       break;
       }  
   }
@@ -601,9 +732,10 @@ void getSN(){
   myStringBuffer.remove(0,1);
   SERIALNUMBER[0] = myStringBuffer.toInt();
   
-  uint8_t mySNArray[2];
+  uint8_t mySNArray[3];
   memcpy(&mySNArray[0],&SERIALNUMBER[0],2);
-  //pHWRemoteCharacteristic->writeValue(&mySNArray[0], 2);
+  mySNArray[2] = 0;
+  hwRemoteCharacteristic->writeValue(&mySNArray[0], 3);
     
 }
 
@@ -611,11 +743,24 @@ void getSN(){
 void saveData(int spalten){
   root = SD.open("/satellit/"  +SerialNumberString+"_"+ Address +  ".txt", FILE_APPEND);
   int saveLength =nDatapoints;
+  if(currentMode == DS18B20_MEASURE){
+    saveLength = nDatapointsDS18B20;
+    }
   //TODO
   if(currentMode == SHTC_MEASURE){
       root.println("SHTC3");
   }else if(currentMode == BMP_MEASURE){      
       root.println("BMP384");
+  }else if(currentMode == MLX_MEASURE){      
+      root.println("MLX90393");
+  }else if(currentMode == IMU_MEASURE){      
+      root.println("ICM42605");
+  }else if(currentMode == DS18B20_MEASURE){      
+      root.println("DS18B20");
+  }else if(currentMode == TC_MEASURE){      
+      root.println("Thermocouple");
+  }else if(currentMode == MPRLS_MEASURE){      
+      root.println("MPRLS");
   }
 //float volatile dataArray[maxFloatValues][nDatapoints];
 
@@ -640,17 +785,24 @@ bool doSomeStatistics(int dataPoints, int column, float target, float deviation)
   }
   
   Serial.printf("Median\t%f ± %f (%f ± %f)\n",median,sqrt(varianz)/sqrt(dataPoints),target,deviation);
+
+  if(median>target-deviation && median<target+deviation){
+      Serial.println("All good");
+    }else{
+      Serial.println("#### ERROR! ####  ");
+      Serial.println("# CHECK VALUES #  ");
+    }
+  
   Serial.println();
   //Serial.printf("standard deviation %f (%f)\n",sqrt(varianz[0]),limitSTD);
   return 0;
 }
 
 void checkLimits(){
-  Serial.println("");
   //######### SHTC3 #########
   if(currentMode == SHTC_MEASURE){
     //check Temperature 
-    Serial.println("SHTC3 Temp");
+    Serial.println("SHTC3 Temperature");
     doSomeStatistics(nDatapoints,0,LIMITS_SHTC[0],LIMITS_SHTC[1]);
     //check humidity 
     Serial.println("SHTC3 Humidity");
@@ -661,7 +813,7 @@ void checkLimits(){
   //######### BMP384 ########
   if(currentMode == BMP_MEASURE){
     //check Temperature 
-    Serial.println("BMP384 Temp");
+    Serial.println("BMP384 Temperature");
     doSomeStatistics(nDatapoints,1,LIMITS_BMP384[0],LIMITS_BMP384[1]);
     //check pressure
     Serial.println("BMP384 Pressure");
@@ -679,12 +831,26 @@ void checkLimits(){
   //########## IMU ##########
   if(currentMode == IMU_MEASURE){
     //absolute acc
-    Serial.println("ICM42605");
+    Serial.println("ICM42605 Accelerometer (units in g)");
     doSomeStatistics(nDatapoints,4,LIMITS_IMU[0],LIMITS_IMU[1]);
     return;
   }
   //########## DS18 #########
+  if(currentMode == DS18B20_MEASURE){
+    Serial.println("Waermelehre Temperatur I");
+    doSomeStatistics(nDatapointsDS18B20,0,LIMITS_DS18B20[0],LIMITS_DS18B20[1]);
+    return;
+  }  
   //########## TC ###########
+  if(currentMode == TC_MEASURE){
+    Serial.println("Waermelehre Temperatur II");
+    doSomeStatistics(nDatapoints,0,LIMITS_TC[0],LIMITS_TC[1]);
+    return;
+  }    
   //######### MPRLS #########
-  
+  if(currentMode == MPRLS_MEASURE){
+    Serial.println("Waermelehre Druck");
+    doSomeStatistics(nDatapoints,0,LIMITS_MPRLS[0],LIMITS_MPRLS[1]);
+    return;
+  }   
   }
