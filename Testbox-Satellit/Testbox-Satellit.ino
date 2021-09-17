@@ -472,6 +472,7 @@ void loop() {
       currentDatapoints=0;
       currentMode = SHTC_MEASURE;  //start with SHTC3
       shtcRemoteCharacteristic->registerForNotify(shtcCallback);
+      Serial.println("SHTC3");
       return;        
       }
     if(currentMode==SHTC_MEASURE){
@@ -497,6 +498,8 @@ void loop() {
       currentDatapoints=0;
       currentMode = BMP_MEASURE; 
       bmpRemoteCharacteristic->registerForNotify(bmpCallback);
+      Serial.println("BMP384");
+
       return;        
       }
     if(currentMode==BMP_MEASURE){
@@ -525,6 +528,8 @@ void loop() {
       currentDatapoints=0;
       currentMode = MLX_MEASURE; 
       mlxRemoteCharacteristic->registerForNotify(mlxCallback);
+      Serial.println("MLX90939");
+      
       return;        
       }
     if(currentMode==MLX_MEASURE){
@@ -550,6 +555,7 @@ void loop() {
       currentDatapoints=0;
       currentMode = IMU_MEASURE; 
       imuAccRemoteCharacteristic->registerForNotify(imuCallback);
+      Serial.println("ICM42605 Accelerometer (units in g)");
       return;        
       }
     if(currentMode==IMU_MEASURE){
@@ -574,11 +580,12 @@ void loop() {
       }                 
     if(currentMode==MPRLS_INIT){
       configData[0] = 0x01;
-      configData[1] = 0x14;
+      configData[1] = 0x0A;
       wlPressureConfigRemoteCharacteristic->writeValue(&configData[0], 20);
       currentDatapoints=0;
       currentMode = MPRLS_MEASURE; 
       wlPressureRemoteCharacteristic->registerForNotify(mprlsCallback);
+      Serial.println("Waermelehre MPRLS");
       return;        
       }
     if(currentMode==MPRLS_MEASURE){
@@ -599,6 +606,7 @@ void loop() {
       currentDatapoints=0;
       currentMode = TC_MEASURE; 
       tcRemoteCharacteristic->registerForNotify(tcCallback);
+      Serial.println("Waermelehre Thermocouple");
       return;        
       }
     if(currentMode==TC_MEASURE){
@@ -618,7 +626,8 @@ void loop() {
       ds18b20ConfigRemoteCharacteristic->writeValue(&configData[0], 20);
       currentDatapoints=0;
       currentMode = DS18B20_MEASURE; 
-      ds18b20RemoteCharacteristic->registerForNotify(ds18b20Callback);      
+      ds18b20RemoteCharacteristic->registerForNotify(ds18b20Callback);
+      Serial.println("Waermelehre DS18B20");      
       return;        
       }
     if(currentMode==DS18B20_MEASURE){
@@ -802,10 +811,10 @@ void checkLimits(){
   //######### SHTC3 #########
   if(currentMode == SHTC_MEASURE){
     //check Temperature 
-    Serial.println("SHTC3 Temperature");
+    Serial.println("Temperature");
     doSomeStatistics(nDatapoints,0,LIMITS_SHTC[0],LIMITS_SHTC[1]);
     //check humidity 
-    Serial.println("SHTC3 Humidity");
+    Serial.println("Humidity");
     doSomeStatistics(nDatapoints,1,LIMITS_SHTC[2],LIMITS_SHTC[3]);
     return;
   }
@@ -813,10 +822,10 @@ void checkLimits(){
   //######### BMP384 ########
   if(currentMode == BMP_MEASURE){
     //check Temperature 
-    Serial.println("BMP384 Temperature");
+    Serial.println("Temperature");
     doSomeStatistics(nDatapoints,1,LIMITS_BMP384[0],LIMITS_BMP384[1]);
     //check pressure
-    Serial.println("BMP384 Pressure");
+    Serial.println("Pressure");
     doSomeStatistics(nDatapoints,0,LIMITS_BMP384[2],LIMITS_BMP384[3]);
     return;
   }  
@@ -824,32 +833,27 @@ void checkLimits(){
   //########## MLX ##########
   if(currentMode == MLX_MEASURE){
     //absolute magnetometer
-    Serial.println("MLX90393");
     doSomeStatistics(nDatapoints,4,LIMITS_MLX[0],LIMITS_MLX[1]);
     return;
   }  
   //########## IMU ##########
   if(currentMode == IMU_MEASURE){
     //absolute acc
-    Serial.println("ICM42605 Accelerometer (units in g)");
     doSomeStatistics(nDatapoints,4,LIMITS_IMU[0],LIMITS_IMU[1]);
     return;
   }
   //########## DS18 #########
   if(currentMode == DS18B20_MEASURE){
-    Serial.println("Waermelehre Temperatur I");
     doSomeStatistics(nDatapointsDS18B20,0,LIMITS_DS18B20[0],LIMITS_DS18B20[1]);
     return;
   }  
   //########## TC ###########
   if(currentMode == TC_MEASURE){
-    Serial.println("Waermelehre Temperatur II");
     doSomeStatistics(nDatapoints,0,LIMITS_TC[0],LIMITS_TC[1]);
     return;
   }    
   //######### MPRLS #########
   if(currentMode == MPRLS_MEASURE){
-    Serial.println("Waermelehre Druck");
     doSomeStatistics(nDatapoints,0,LIMITS_MPRLS[0],LIMITS_MPRLS[1]);
     return;
   }   
