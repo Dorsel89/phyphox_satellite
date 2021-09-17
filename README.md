@@ -2,19 +2,22 @@
 
 1. [phyphox Experiments](#qr)
 2. [Configuration](#config)
-   * [Magnetometer MLX90393](#MLX90393)
-   * [Accelerometer/Gyroscope ICM42605](#ICM42605)
-   * [Temperature/Humidity SHTC3](#SHTC3)
-   * [Pressure/Temperature BMP384](#BMP384)
+   * [Satellite Magnetometer MLX90393](#MLX90393)
+   * [Satellite Accelerometer/Gyroscope ICM42605](#ICM42605)
+   * [Satellite Temperature/Humidity SHTC3](#SHTC3)
+   * [Satellite Pressure/Temperature BMP384](#BMP384)
+   * [Thermodynamics Thermocouple](#Thermocouple)
+   * [Thermodynamics 1Wire DS18B20](#DS18B20)
+   * [Thermodynamics MPRLS](#MPRLS)
 3. [Specifications](#Specification)
 4. [Test-Results](#Test-Results)
 
 ## 2. Configuration <a name="config"></a>
-### Magnetometer MLX90393 <a name="MLX90393"></a> ###
+### Satellite  Magnetometer MLX90393 <a name="MLX90393"></a> ###
 charateristic | uuid
 --------------|-----
-data          | cddf1008-30f7-4671-8b43-5e40ba53514a
-config        | cddf1009-30f7-4671-8b43-5e40ba53514a
+data          | cddf1009-30f7-4671-8b43-5e40ba53514a
+config        | cddf100a-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
 -----|---------
@@ -27,11 +30,12 @@ Byte | Settings
 6    | uint8_t z resolution: 0-3
 7    | uint8_t number of datasets per packages
 
-### Accelerometer/Gyroscope ICM42605 <a name="ICM42605"></a> ### 
+### Satellite  Accelerometer/Gyroscope ICM42605 <a name="ICM42605"></a> ### 
 charateristic | uuid
 --------------|-----
-data          | cddf1002-30f7-4671-8b43-5e40ba53514a
-config        | cddf1003-30f7-4671-8b43-5e40ba53514a
+acc data          | cddf1002-30f7-4671-8b43-5e40ba53514a
+gyr data          | cddf1003-30f7-4671-8b43-5e40ba53514a
+config        | cddf1004-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
 -----|---------
@@ -41,22 +45,22 @@ Byte | Settings
 3    | uint8_t gyroscope range <br> 2000DPS: 0x00 <br> 1000DPS: 0x01 <br> 500DPS: 0x02 <br> 250DPS: 0x03 <br> 125DPS: 0x04 <br> 62.5DPS: 0x05 <br> 31.25DPS: 0x06 <br> 15.125DPS: 0x07
 4    | uint8_t gyroscope rate <br> 8000Hz: 0x03 <br> 4000Hz: 0x04 <br> 2000Hz: 0x05 <br> 1000Hz: 0x06 <br> 200Hz: 0x07 <br> 100Hz: 0x08 <br> 50Hz: 0x09 <br> 25Hz: 0x0A <br> 6.25Hz: 0x0B <br> 6.25Hz: 0x0C <br> 3.12Hz: 0x0D <br> 1.5625Hz: 0x0E <br> 500Hz: 0x0F
 
-### Temperature/Humidity SHTC3  <a name="SHTC3"></a> ###
+### Satellite  Temperature/Humidity SHTC3  <a name="SHTC3"></a> ###
 charateristic | uuid
 --------------|-----
-data          | cddf1004-30f7-4671-8b43-5e40ba53514a
-config        | cddf1005-30f7-4671-8b43-5e40ba53514a
+data          | cddf1005-30f7-4671-8b43-5e40ba53514a
+config        | cddf1006-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
 -----|---------
 0    | uint8_t enable sensor
 1    | uint8_t measurement interval in 10ms (0x03 equals 30ms measurement interval)
 
-### Pressure/Temperature BMP384  <a name="BMP384"></a> ###
+### Satellite  Pressure/Temperature BMP384  <a name="BMP384"></a> ###
 charateristic | uuid
 --------------|-----
-data          | cddf1006-30f7-4671-8b43-5e40ba53514a
-config        | cddf1007-30f7-4671-8b43-5e40ba53514a
+data          | cddf1007-30f7-4671-8b43-5e40ba53514a
+config        | cddf1008-30f7-4671-8b43-5e40ba53514a
 
 Byte | Settings
 -----|---------
@@ -65,7 +69,7 @@ Byte | Settings
 3    | uint8_t iir filter coefficient: <br> disable: 0x00 <br> 1: 0x01 <br> 3: 0x02 <br> 7: 0x03 <br> 15: 0x04 <br> 31: 0x05 <br> 63: 0x06 <br> 127: 0x07
 4    | uint8_t data rate: <br> 200Hz: 0x00 <br> 100Hz: 0x01 <br> 50Hz: 0x02 <br> 25Hz: 0x03 <br> 12.5Hz: 0x04 <br> 6.25Hz: 0x05 <br> 3.1Hz: 0x06 <br> 1.5Hz: 0x07 <br> 0.78Hz: 0x08 <br> 0.39Hz: 0x09 <br> 0_2Hz: 0x0A
 
-### Temperature  Thermocouple  <a name="Thermocouple"></a> ###
+### Thermodynamics Thermocouple  <a name="Thermocouple"></a> ###
 charateristic | uuid
 --------------|-----
 data          | cddf100f-30f7-4671-8b43-5e40ba53514a
@@ -76,7 +80,7 @@ Byte | Settings
 0    | uint8_t enable sensor
 1    | uint8_t measurement interval in 100ms (0x03 equals 300ms measurement interval)
 
-### Temperature  1Wire DS18B20  <a name="DS18B20"></a> ###
+### Thermodynamics 1Wire DS18B20  <a name="DS18B20"></a> ###
 charateristic | uuid
 --------------|-----
 data          | cddf1011-30f7-4671-8b43-5e40ba53514a
@@ -87,7 +91,7 @@ Byte | Settings
 0    | uint8_t enable sensor
 1    | uint8_t measurement interval in 1000ms (0x03 equals 3000ms measurement interval, 0x00 represents the minimal measurement interval of 750ms)
 
-### Pressure MPRLS  <a name="MPRLS"></a> ###
+### Thermodynamics MPRLS  <a name="MPRLS"></a> ###
 charateristic | uuid
 --------------|-----
 data          | cddf100d-30f7-4671-8b43-5e40ba53514a
