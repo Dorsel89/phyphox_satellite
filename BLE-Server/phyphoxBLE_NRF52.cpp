@@ -172,7 +172,7 @@ void PhyphoxBleEventHandler::onConnectionComplete(const ble::ConnectionCompleteE
                                     ble::conn_interval_t(PhyphoxBLE::minConInterval),
                                     ble::conn_interval_t(PhyphoxBLE::maxConInterval),
                                     ble::slave_latency_t (PhyphoxBLE::slaveLatency),
-                                   ble::supervision_timeout_t(PhyphoxBLE::timeout));
+                                   ble::supervision_timeout_t(PhyphoxBLE::timeout));                                   
 }
 
 #ifndef NDEBUG

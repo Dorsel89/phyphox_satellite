@@ -31,6 +31,7 @@ Ticker imuTicker;
 uint32_t flashAddress = 0x0FE000;
 FLASH myCONFIG(flashAddress);
 
+volatile int deviceCount = 0;
 const int conSets = 100;
 float dataSet[conSets];
 float dataSetTime[conSets];
@@ -423,6 +424,7 @@ int main()
     mlx.exitMode();
     char DEVICENAME[30];
     getDeviceName(DEVICENAME);
+    blinkLed(3, LED_R);
     PhyphoxBLE::start(DEVICENAME);        
 
     Ticker BatteryTicker;
@@ -459,6 +461,13 @@ int main()
             ThisThread::sleep_for(1s);            
             continue;
         }
+        if(PhyphoxBLE::currentConnections != deviceCount){
+            if(PhyphoxBLE::currentConnections>deviceCount){
+                blinkLed(3, LED_B);
+            }
+            deviceCount = PhyphoxBLE::currentConnections;
+        }
+        
         if(bmpAvailable){
             if(flagBMP){
                 bmp384.getData();
