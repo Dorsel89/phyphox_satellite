@@ -18,7 +18,14 @@
 #include "bmp384.h"
 #include "flashUtility.h"
 
+#include "USBSerial.h"
+#define USB_DEBUG
 
+#ifdef USB_DEBUG
+USBSerial serial(true);
+#endif
+
+uint8_t ERROR = 0;
 DigitalOut LED_R(LEDRed);
 DigitalOut LED_B(LEDBlue);
 
@@ -198,7 +205,15 @@ void ds18b20Config(){
 }
 void bmpConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_BMP384);
-    
+
+    #ifdef USB_DEBUG
+    serial.printf("BMP384 Config received. Byte Array:\r\n");
+    for(int i = 0; i < 4; i++) {
+        serial.printf("%d ", configData[i]);
+    }
+    serial.printf("\r\n");    
+    #endif    
+
     if(configData[0]==1){
         bmp384.changeSettings(configData[1],configData[2],configData[3]);
         ThisThread::sleep_for(100ms);
@@ -380,7 +395,9 @@ void initADS1231(){
 
 int main()
 {
-    
+    #ifdef USB_DEBUG
+    serial.printf("connected to satellite\r\n");
+    #endif
     global.reset();
     global.start();
     i2c.frequency(200000);
@@ -431,8 +448,19 @@ int main()
     BatteryTicker.attach(checkBattery,1s);
     
     if(bmpAvailable){
-        bmp384.init(0x03,0x03,0x03);
-        bmp384.disable();     
+        #ifdef USB_DEBUG
+        serial.printf("start to BMP384 init...\r\n");
+        #endif
+        ERROR = bmp384.init(0x03,0x03,0x03);
+        #ifdef USB_DEBUG
+        if(ERROR == 0){
+            serial.printf("initilized\r\n");
+        }else {
+            serial.printf("errorcode: %d",ERROR);
+        }
+        
+        #endif
+        bmp384.disable();
     }
 
     mprls.setI2C(0x18 << 1 ,&i2c);  //TODO
@@ -440,6 +468,7 @@ int main()
     //initADS1231();
     
     while (true) {
+        printf("USBSerial test\n");
         if(PhyphoxBLE::currentConnections >0 && deviceInSleepMode){
             deviceInSleepMode=false;
             global.reset();
@@ -470,7 +499,16 @@ int main()
         
         if(bmpAvailable){
             if(flagBMP){
+                #ifdef USB_DEBUG
+                serial.printf("New Data: ");
+                #endif
+
                 bmp384.getData();
+
+                #ifdef USB_DEBUG
+                serial.printf("%d Pa\r\n", (int16_t)bmp384.pressure);
+                #endif
+                
                 float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
                 PhyphoxBLE::write(data,3,ID_BMP384);
                 flagBMP = false;

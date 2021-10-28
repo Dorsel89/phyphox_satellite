@@ -22,8 +22,6 @@
             "cordio.desired-att-mtu": 182,
             "cordio.rx-acl-buffer-size": 185,
             "target.lf_clock_src": "NRF_LF_SRC_RC",
-            "target.console-uart": false,
-            "target.console-uart-flow-control": null,
             "platform.crash-capture-enabled": true,
             "platform.fatal-error-auto-reboot-enabled": true,
             "platform.error-reboot-max": 999,
