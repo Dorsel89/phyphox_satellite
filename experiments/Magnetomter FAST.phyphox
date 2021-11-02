@@ -47,7 +47,7 @@
 
             <graph editor:uuid="104" editor:posx="691.46875" editor:posy="77.859375" label="mlx90393 z" aspectRatio="2.5" style="lines" lineWidth="1" color="ff7e22" partialUpdate="false" history="1" labelX="time" labelY="B" labelZ="" unitX="s" unitY="µT" unitZ="" logX="false" logY="false" logZ="false" xPrecision="3" yPrecision="3" zPrecision="3" scaleMinX="auto" scaleMaxX="auto" scaleMinY="auto" scaleMaxY="auto" scaleMinZ="auto" scaleMaxZ="auto" minX="0" maxX="0" minY="0" maxY="0" minZ="0" maxZ="0"  mapWidth="0"       >
                 <input axis="x">timeSatellite</input>
-                <input axis="y">magX</input>
+                <input axis="y">magZ</input>
             </graph>
             <value editor:uuid="111" editor:posx="696.078125" editor:posy="249.484375" unit="µT" label="" size="1" precision="2" scientific="false"  factor="1" >
                 <input>magZ</input>
