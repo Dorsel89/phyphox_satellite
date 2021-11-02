@@ -5,9 +5,11 @@
     <description></description>
     <data-containers>
         <container size="1000" static="false">magX</container>
-		<container size="1000" static="false">magY</container>
-		<container size="1000" static="false">magZ</container>
-        <container size="1000" static="false">timeSatellite</container>
+	<container size="1000" static="false">magY</container>
+	<container size="1000" static="false">magZ</container>
+	<container size="1000" static="false">abs</container>
+
+	<container size="1000" static="false">timeSatellite</container>
 		
         <container size="1" static="false">first</container>
         <container size="1" static="false">count</container>
@@ -26,6 +28,12 @@
     <output>
     </output>
     <analysis sleep="0"  onUserInput="false">
+    	<formula>
+            <input as="in" clear="false">magX</input>
+            <input as="in" clear="false">magY</input>
+            <input as="in" clear="false">magZ</input>
+            <output as="out">abs</output>
+	</formula>
     </analysis>
     <views>
         <view label="New view">
@@ -52,7 +60,9 @@
             <value editor:uuid="111" editor:posx="696.078125" editor:posy="249.484375" unit="µT" label="" size="1" precision="2" scientific="false"  factor="1" >
                 <input>magZ</input>
             </value>			
-		
+            <value label="abs" size="1" precision="2" scientific="false" unit="µT" factor="1" >
+                <input>abs</input>
+            </value>		
         </view>
     </views>
     <export>
