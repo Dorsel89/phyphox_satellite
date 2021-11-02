@@ -28,7 +28,7 @@
     <output>
     </output>
     <analysis sleep="0"  onUserInput="false">
-    	<formula>
+    	<formula formula="sqrt([1_]^2+[2_]^2+[3_]^2)">
             <input as="in" clear="false">magX</input>
             <input as="in" clear="false">magY</input>
             <input as="in" clear="false">magZ</input>
