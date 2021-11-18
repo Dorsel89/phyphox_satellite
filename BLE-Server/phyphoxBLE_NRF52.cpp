@@ -41,7 +41,7 @@ uint16_t PhyphoxBLE::currentConnections =0;
 char PhyphoxBLE::name[50] = "";
 
 
-Thread PhyphoxBLE::bleEventThread;
+Thread PhyphoxBLE::bleEventThread(osPriorityNormal, 2048+4096);
 Thread PhyphoxBLE::transferExpThread;
 
 uint8_t PhyphoxBLE::data_package[182] = {0};
@@ -399,7 +399,6 @@ void PhyphoxBLE::start(const char* DEVICE_NAME, uint8_t* exp_pointer, size_t len
       addExperiment(defaultExperiment);
       
 	}
-
 	bleEventThread.start(callback(&queue, &EventQueue::dispatch_forever));
   	transferExpThread.start(callback(&transferQueue, &EventQueue::dispatch_forever));
 	ble.onEventsToProcess(PhyphoxBLE::schedule_ble_events);

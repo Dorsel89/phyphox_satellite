@@ -63,7 +63,7 @@ void ds18b20Config();
 void tcConfig();
 void mprlsConfig();
 
-bool deviceInSleepMode = true;
+volatile bool deviceInSleepMode = true;
 
 Ticker tickerShtc3;
 
@@ -165,6 +165,15 @@ bool getNBit(uint8_t byte, int position){
 
 void thermocoupleConfig(){
     PhyphoxBLE::read(&configData[0],20, ID_THERMOCOUPLE);
+
+    #ifdef USB_DEBUG
+    serial.printf("Thermocouple Config received. Byte Array:\r\n");
+    for(int i = 0; i < 20; i++) {
+        serial.printf("%d ", configData[i]);
+    }
+    serial.printf("\r\n");    
+    #endif   
+
     if(configData[0]==1){
         Thermocouple.init();  
         Thermocouple.startTempConversion();   //TODO
@@ -176,6 +185,14 @@ void thermocoupleConfig(){
 }
 void mprlsConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_MPRLS);
+    #ifdef USB_DEBUG
+    serial.printf("MPRLS Config received. Byte Array:\r\n");
+    for(int i = 0; i < 20; i++) {
+        serial.printf("%d ", configData[i]);
+    }
+    serial.printf("\r\n");    
+    #endif 
+
     if(configData[0]==1){
         if(configData[1]==0){
             configData[1] = 1;
@@ -189,6 +206,13 @@ void mprlsConfig(){
 }
 void ds18b20Config(){
     PhyphoxBLE::read(&configData[0],20,ID_DS18B20);
+    #ifdef USB_DEBUG
+    serial.printf("DS18B20 Config received. Byte Array:\r\n");
+    for(int i = 0; i < 20; i++) {
+        serial.printf("%d ", configData[i]);
+    }
+    serial.printf("\r\n");    
+    #endif 
     if(configData[0]==1){
         ds18b20.init();
         ds18b20.startTempConversion();
@@ -225,8 +249,16 @@ void bmpConfig(){
 
 void imuConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_ICM42605);
-    IMU.setState(false, false);
 
+    #ifdef USB_DEBUG
+    serial.printf("IMU Config received. Byte Array:\r\n");
+    for(int i = 0; i < 20; i++) {
+        serial.printf("%d ", configData[i]);
+    }
+    serial.printf("\r\n");    
+    #endif
+
+    IMU.setState(false, false);
     IMU.init(configData[1], configData[3], configData[2], configData[4]);
     //byte 0; bit 0 = enable accelerometer, bit 1 = enable gyroscope
     //IMU.setState(getNBit(configData[0], 0), getNBit(configData[0], 1)); 
@@ -247,6 +279,14 @@ void mlxConfig(){
     
     mlx.exitMode();
     PhyphoxBLE::read(&configData[0],20,ID_MLX90393);
+    #ifdef USB_DEBUG
+    serial.printf("MLX Config received. Byte Array:\r\n");
+    for(int i = 0; i < 20; i++) {
+        serial.printf("%d ", configData[i]);
+    }
+    serial.printf("\r\n");    
+    #endif 
+
     mlx.setGain(mlx90393_gain((uint8_t)configData[1]));
     mlx.setFilter(mlx90393_filter((uint8_t)configData[2]));
     mlx.setOversampling(mlx90393_oversampling((uint8_t)configData[3]));
@@ -268,6 +308,14 @@ void mlxConfig(){
 void shtc3Config(){
     //read config and set ticker according to datarate
     PhyphoxBLE::read(&configData[0],20,ID_SHTC3);
+    #ifdef USB_DEBUG
+    serial.printf("SHTC3 Config received. Byte Array:\r\n");
+    for(int i = 0; i < 20; i++) {
+        serial.printf("%d ", configData[i]);
+    }
+    serial.printf("\r\n");    
+    #endif 
+
     uint16_t timeInterval = 10*configData[1]; //byte 1 = 3 -> read sensor every 30ms
     if(timeInterval<10){
         timeInterval=10;
@@ -291,8 +339,19 @@ void readShtc3(){
 void readMPRLS(){
     
     float value[2] = {mprls.readPressure(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-    PhyphoxBLE::write(value,2,ID_MPRLS);
-    flagMPRLS=false;    
+    PhyphoxBLE::write(value,2,ID_MPRLS);   
+}
+void readBMP(){
+    #ifdef USB_DEBUG
+    serial.printf("New Data: ");
+    #endif
+    bmp384.getData();
+
+    #ifdef USB_DEBUG
+    serial.printf("%d Pa\r\n", (int16_t)bmp384.pressure);
+    #endif
+    float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    PhyphoxBLE::write(data,3,ID_BMP384); 
 }
 void readLoadcell(){
     loadcellSample.status          = myWeightSensor.ADS1231_ReadRawData(&loadcellSample.count, loadcellSample.num_avg);
@@ -343,7 +402,7 @@ void receivedSN() {           // get data from phyphox app
     if(mySNBufferArray[2]){
         //restart to get name
         NVIC_SystemReset();
-    }
+    }   
     uint16_t intSN[1];
     intSN[0] = mySNBufferArray[1] << 8 | mySNBufferArray[0];
     myCONFIG.writeSN(intSN);
@@ -398,6 +457,7 @@ int main()
     #ifdef USB_DEBUG
     serial.printf("connected to satellite\r\n");
     #endif
+
     global.reset();
     global.start();
     i2c.frequency(200000);
@@ -426,19 +486,18 @@ int main()
     // init IMU
     IMU.reset();
     IMU.init(AFS_2G, GFS_15_125DPS, AODR_12_5Hz, GODR_12_5Hz);
-    //IMU.setState(true, true);
 
     // init SHTC3
     shtc3.init(&i2c);
-    
-    ThisThread::sleep_for(2s);
+
     //init mlx
     mlx_DataReady.rise(&mlxSetFlag);
-    bmpDataReady.rise(&bmpSetFlag);
     mlx.begin_I2C(24, &i2c);//0x18
-    ThisThread::sleep_for(2s);
     mlx.numberPerPackage = 1;
     mlx.exitMode();
+
+    bmpDataReady.rise(&bmpSetFlag);
+
     char DEVICENAME[30];
     getDeviceName(DEVICENAME);
     blinkLed(3, LED_R);
@@ -458,7 +517,6 @@ int main()
         }else {
             serial.printf("errorcode: %d",ERROR);
         }
-        
         #endif
         bmp384.disable();
     }
@@ -473,6 +531,16 @@ int main()
             deviceInSleepMode=false;
             global.reset();
         }
+        if(PhyphoxBLE::currentConnections != deviceCount){
+            if(PhyphoxBLE::currentConnections>deviceCount){
+                blinkLed(3, LED_B);
+            }
+            deviceCount = PhyphoxBLE::currentConnections;
+            #ifdef USB_DEBUG
+            serial.printf("device count changed to: %i \r\n",deviceCount);
+            #endif
+            
+        }
         if(PhyphoxBLE::currentConnections ==0){
             if(!deviceInSleepMode){
                 imuTicker.detach();
@@ -485,32 +553,28 @@ int main()
                 thermocoupleTicker.detach();
                 mprlsTicker.detach();                
                 ds18b20Ticker.detach();
+                ThisThread::sleep_for(100ms);
+                flagBMP = false;
+                flagBattery = false;
+                flagSHTC3 = false;
+                flagLoadcell = false;
+                flagMPRLS = false;
+                flagIMU = false;
+                flagMLX = false;
+                flagDS18B20 = false;
+                flagTC = false;
                 deviceInSleepMode = true;
-            }
-            ThisThread::sleep_for(1s);            
-            continue;
-        }
-        if(PhyphoxBLE::currentConnections != deviceCount){
-            if(PhyphoxBLE::currentConnections>deviceCount){
-                blinkLed(3, LED_B);
-            }
-            deviceCount = PhyphoxBLE::currentConnections;
+
+                #ifdef USB_DEBUG
+                serial.printf("device in sleep mode\r\n");
+                #endif
+            }            
+            ThisThread::sleep_for(200ms);
         }
         
         if(bmpAvailable){
             if(flagBMP){
-                #ifdef USB_DEBUG
-                serial.printf("New Data: ");
-                #endif
-
-                bmp384.getData();
-
-                #ifdef USB_DEBUG
-                serial.printf("%d Pa\r\n", (int16_t)bmp384.pressure);
-                #endif
-                
-                float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-                PhyphoxBLE::write(data,3,ID_BMP384);
+                readBMP();
                 flagBMP = false;
             }
         }        
@@ -527,6 +591,7 @@ int main()
         }
         if(flagMPRLS){
             readMPRLS();
+            flagMPRLS=false; 
         }
         if(flagIMU){
             readIMU();
