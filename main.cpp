@@ -239,7 +239,11 @@ void bmpConfig(){
     #endif    
 
     if(configData[0]==1){
-        bmp384.changeSettings(configData[1],configData[2],configData[3]);
+
+        ERROR = bmp384.changeSettings(configData[1],configData[2],configData[3]);
+        #ifdef USB_DEBUG
+        serial.printf("ERROR: %i \r\n",ERROR);
+        #endif  
         ThisThread::sleep_for(100ms);
         bmp384.enable();
     }else {
