@@ -201,7 +201,7 @@ void bmpConfig(){
     
     if(configData[0]==1){
         bmp384.changeSettings(configData[1],configData[2],configData[3]);
-        ThisThread::sleep_for(100ms);
+        ThisThread::sleep_for(10ms); 
         bmp384.enable();
     }else {
         bmp384.disable();
@@ -270,15 +270,18 @@ void readShtc3(){
     shtc3.read(&value[0], &value[1],false); //always high precision mode
     float floatA[3] = {shtc3.toCelsius(value[0]),shtc3.toPercentage(value[1]),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
     PhyphoxBLE::write(&floatA[0],3,ID_SHTC3);
-    flagSHTC3=false;
 }
 
 void readMPRLS(){
     
     float value[2] = {mprls.readPressure(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
     PhyphoxBLE::write(value,2,ID_MPRLS);
-    flagMPRLS=false;    
 }
+void readBMP(){
+    bmp384.getData();
+    float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    PhyphoxBLE::write(data,3,ID_BMP384);
+}         
 void readLoadcell(){
     loadcellSample.status          = myWeightSensor.ADS1231_ReadRawData(&loadcellSample.count, loadcellSample.num_avg);
     loadcellSample.calculated_volt = myWeightSensor.ADS1231_CalculateVoltage(&loadcellSample.count, 3.3);
@@ -325,10 +328,16 @@ void readMLX(){
 void receivedSN() {           // get data from phyphox app
     uint8_t mySNBufferArray[20];
     PhyphoxBLE::readHWConfig(&mySNBufferArray[0],20);
-    if(mySNBufferArray[2]){
+    if(getNBit(mySNBufferArray[2], 0) ){
         //restart to get name
         NVIC_SystemReset();
     }
+    //if second bit is true, user can set rgb led with bit 2 (blue) and 3 (red)
+    if(getNBit(mySNBufferArray[2], 1) ){
+        LED_B = getNBit(mySNBufferArray[2], 2);
+        LED_R = getNBit(mySNBufferArray[2], 3);
+    }
+    
     uint16_t intSN[1];
     intSN[0] = mySNBufferArray[1] << 8 | mySNBufferArray[0];
     myCONFIG.writeSN(intSN);
@@ -414,12 +423,10 @@ int main()
     // init SHTC3
     shtc3.init(&i2c);
     
-    ThisThread::sleep_for(2s);
     //init mlx
     mlx_DataReady.rise(&mlxSetFlag);
     bmpDataReady.rise(&bmpSetFlag);
     mlx.begin_I2C(24, &i2c);//0x18
-    ThisThread::sleep_for(2s);
     mlx.numberPerPackage = 1;
     mlx.exitMode();
     char DEVICENAME[30];
@@ -444,6 +451,12 @@ int main()
             deviceInSleepMode=false;
             global.reset();
         }
+        if(PhyphoxBLE::currentConnections != deviceCount){
+            if(PhyphoxBLE::currentConnections>deviceCount){
+                blinkLed(2, LED_B);
+            }
+            deviceCount = PhyphoxBLE::currentConnections;
+        }
         if(PhyphoxBLE::currentConnections ==0){
             if(!deviceInSleepMode){
                 imuTicker.detach();
@@ -456,23 +469,26 @@ int main()
                 thermocoupleTicker.detach();
                 mprlsTicker.detach();                
                 ds18b20Ticker.detach();
+                ThisThread::sleep_for(10ms);
+                flagBattery = false;
+                flagSHTC3 = false;
+                flagMPRLS = false;
+                flagTC = false;
+                flagIMU = false;
+                flagMLX = false;
+                flagBMP = false;
+                flagDS18B20 = false;
+                flagLoadcell = false;
+
                 deviceInSleepMode = true;
             }
-            ThisThread::sleep_for(1s);            
-            continue;
+            ThisThread::sleep_for(200ms);
         }
-        if(PhyphoxBLE::currentConnections != deviceCount){
-            if(PhyphoxBLE::currentConnections>deviceCount){
-                blinkLed(3, LED_B);
-            }
-            deviceCount = PhyphoxBLE::currentConnections;
-        }
+        
         
         if(bmpAvailable){
             if(flagBMP){
-                bmp384.getData();
-                float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-                PhyphoxBLE::write(data,3,ID_BMP384);
+                readBMP();
                 flagBMP = false;
             }
         }        
@@ -482,6 +498,7 @@ int main()
         }
         if(flagSHTC3){
             readShtc3();
+            flagSHTC3=false;
         }
         if(flagLoadcell){
             readLoadcell();
@@ -489,6 +506,7 @@ int main()
         }
         if(flagMPRLS){
             readMPRLS();
+            flagMPRLS=false;    
         }
         if(flagIMU){
             readIMU();
@@ -505,8 +523,9 @@ int main()
             readDS18B20();
         }
          if(flagTC){
-            flagTC=false;
             readTHERMOCOUPLE();
+            flagTC=false;
+
         }        
     }
 }
