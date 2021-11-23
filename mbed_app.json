@@ -15,7 +15,7 @@
         }
     },
     "macros": [
-        "MBED_CONF_APP_MAIN_STACK_SIZE=10000"
+        "MBED_CONF_APP_MAIN_STACK_SIZE=20480"
     ],
     "target_overrides": {
         "*": {

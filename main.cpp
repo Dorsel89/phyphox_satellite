@@ -201,7 +201,7 @@ void bmpConfig(){
     
     if(configData[0]==1){
         bmp384.changeSettings(configData[1],configData[2],configData[3]);
-        ThisThread::sleep_for(10ms); 
+        ThisThread::sleep_for(100ms);// for some reason this is needed...
         bmp384.enable();
     }else {
         bmp384.disable();
@@ -209,18 +209,20 @@ void bmpConfig(){
 }
 
 void imuConfig(){
+    //enable, rate, range acc, range gyr, number of packages
     PhyphoxBLE::read(&configData[0],20,ID_ICM42605);
     IMU.setState(false, false);
 
-    IMU.init(configData[1], configData[3], configData[2], configData[4]);
+    //only both can be enabled or disabled, one rate for both!
+    IMU.init(configData[1], configData[2], configData[3], configData[3]);
     //byte 0; bit 0 = enable accelerometer, bit 1 = enable gyroscope
     //IMU.setState(getNBit(configData[0], 0), getNBit(configData[0], 1)); 
-    
+    IMU.numberPerPackage = (uint8_t)configData[4];
     if(configData[0]==true){
         if(IMU.setState(1,1)){
             NVIC_SystemReset();
         }
-        imuTicker.attach(imuSetFlag, IMU.tickerInterval( configData[4])*1ms);
+        imuTicker.attach(imuSetFlag, IMU.tickerInterval( configData[3])*1ms);
     }else {
         IMU.setState(0,0); 
         imuTicker.detach();
@@ -294,10 +296,23 @@ void readIMU(){
         error = IMU.readData();
         if(error == false){
             float time = (float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
-            float accFloat[4]={IMU.ax,IMU.ay,IMU.az,time};
-            float gyrFloat[4]={IMU.gx,IMU.gy,IMU.gz,time};
-            PhyphoxBLE::write(accFloat,4,ID_ICM42605_ACC);
-            PhyphoxBLE::write(gyrFloat,4,ID_ICM42605_GYR);
+            IMU.measuredDataAcc[4*IMU.currentPackage+0]=IMU.ax;
+            IMU.measuredDataAcc[4*IMU.currentPackage+1]=IMU.ay;
+            IMU.measuredDataAcc[4*IMU.currentPackage+2]=IMU.az;
+            IMU.measuredDataAcc[4*IMU.currentPackage+3]=time;
+
+            IMU.measuredDataGyr[4*IMU.currentPackage+0]=IMU.gx;
+            IMU.measuredDataGyr[4*IMU.currentPackage+1]=IMU.gy;
+            IMU.measuredDataGyr[4*IMU.currentPackage+2]=IMU.gz;
+            IMU.measuredDataGyr[4*IMU.currentPackage+3]=time;
+            IMU.currentPackage+=1;
+    
+            if(IMU.currentPackage == IMU.numberPerPackage){
+                PhyphoxBLE::write(IMU.measuredDataAcc,IMU.numberPerPackage*4,ID_ICM42605_ACC);
+                PhyphoxBLE::write(IMU.measuredDataGyr,IMU.numberPerPackage*4,ID_ICM42605_GYR);
+                IMU.currentPackage = 0;
+            }
+            
         }
 }
 
@@ -416,6 +431,7 @@ int main()
     struct sensor MLX = {0,0,0,0,true};
 
     // init IMU
+    IMU.numberPerPackage = 1;
     IMU.reset();
     IMU.init(AFS_2G, GFS_15_125DPS, AODR_12_5Hz, GODR_12_5Hz);
     //IMU.setState(true, true);
