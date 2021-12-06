@@ -33,11 +33,23 @@ using std::copy;
 #define GAP_CON_MAX_INTERVAL 30
 #define GAP_CON_SLAVE_LATENCY 0
 
+class PhyphoxBleGattEventHandler : public ble::GattServer::EventHandler {
+    public:
+    virtual void onDataWritten(const GattWriteCallbackParams&);
+    PhyphoxBleGattEventHandler(BLE& ble):
+        ble(ble) {
+    }
+    private: 
+    BLE& ble;
+};
+
 class PhyphoxBleEventHandler : public ble::Gap::EventHandler {
     public:
 
     virtual void onDisconnectionComplete(const ble::DisconnectionCompleteEvent&);
     virtual void onConnectionComplete(const ble::ConnectionCompleteEvent&);
+
+    
     PhyphoxBleEventHandler(BLE& ble):
         ble(ble) {
     }
@@ -52,6 +64,7 @@ class PhyphoxBLE
 	private:
 
     static PhyphoxBleEventHandler eventHandler;
+    static PhyphoxBleGattEventHandler gattTestEventHandler;
     
 	static const UUID phyphoxExperimentServiceUUID;
 	static const UUID phyphoxDataServiceUUID;
@@ -85,40 +98,41 @@ class PhyphoxBLE
 
     static char name[50];
 
-	static uint8_t data_package[182];
+	static uint8_t data_packageLarge[182];
+    static uint8_t data_packageSmall[20];
 	static uint8_t config_package[CONFIGSIZE];
 
 	/*BLE stuff*/
 	
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> icm42605DataAccCharacteristic;
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> icm42605DataGyrCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> icm42605ConfigCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageLarge)> icm42605DataAccCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageLarge)> icm42605DataGyrCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> icm42605ConfigCharacteristic;
 
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> shtc3DataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> shtc3ConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageSmall)> shtc3DataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> shtc3ConfigCharacteristic;
     
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> bmp384DataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> bmp384ConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageLarge)> bmp384DataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> bmp384ConfigCharacteristic;
 
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> mlx90393DataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> mlx90393ConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageLarge)> mlx90393DataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> mlx90393ConfigCharacteristic;
 
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> loadcellDataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> loadcellConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageSmall)> loadcellDataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> loadcellConfigCharacteristic;
 
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> mprlsDataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> mprlsConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageSmall)> mprlsDataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> mprlsConfigCharacteristic;
 
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> ds18b20DataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> ds18b20ConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageSmall)> ds18b20DataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> ds18b20ConfigCharacteristic;
 
-    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> thermocoupleDataCharacteristic;
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> thermocoupleConfigCharacteristic;
+    static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageSmall)> thermocoupleDataCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(config_package)> thermocoupleConfigCharacteristic;
 
 	static uint8_t readValue[DATASIZE];
 	static ReadOnlyArrayGattCharacteristic<uint8_t, sizeof(readValue)> experimentCharacteristic;
 
-	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_package)> hwConfigCharacteristic;
+	static ReadWriteArrayGattCharacteristic<uint8_t, sizeof(data_packageSmall)> hwConfigCharacteristic;
 
 
 	static Thread bleEventThread;
@@ -127,12 +141,14 @@ class PhyphoxBLE
 	/*end BLE stuff*/
 	static EventQueue transferQueue;
 
+    
+
 	
 	//helper function to initialize BLE server and for connection poperties
 	static void bleInitComplete(BLE::InitializationCompleteCallbackContext*);
 	//static void when_disconnection(const Gap::DisconnectionCallbackParams_t *);
 	static void when_subscription_received(GattAttribute::Handle_t);
-	static void configReceived(const GattWriteCallbackParams *params);
+	
 
 	//static void when_connected(const Gap::ConnectionCallbackParams_t *);
    
@@ -158,14 +174,18 @@ class PhyphoxBLE
 	static uint8_t* p_exp; //this pointer will point to the byte array which holds an experiment
 
 
+
 	public:
+    static inline DigitalOut* led = nullptr;
+    static inline EventQueue* myMainQueue = nullptr;
+    static void configReceived(const GattWriteCallbackParams *params);
     static BLE& ble;
     static BatteryService batteryService;
     static inline uint16_t minConInterval = 6;	//7.5ms
 	static inline uint16_t maxConInterval = 32; //30ms
 	static inline uint16_t slaveLatency = 0;
-	static inline uint16_t timeout = 50;
-	static uint16_t currentConnections;	
+	static inline uint16_t timeout = 100;
+	static uint16_t volatile currentConnections;	
 
     
 	static uint8_t EXPARRAY[2000];// block some storage
@@ -181,6 +201,9 @@ class PhyphoxBLE
     static void (*imuHandler)();
     static void (*hwConfigHandler)();
 
+    static void (*connectHandler)();
+    static void (*disconnectHandler)();
+    static void disconnectHandlerBuffer();
     static void poll();
     static void poll(int timeout);
 

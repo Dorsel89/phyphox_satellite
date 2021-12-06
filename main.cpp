@@ -18,15 +18,27 @@
 #include "bmp384.h"
 #include "flashUtility.h"
 
+//#define DEBUGGING
+
+#ifdef DEBUGGING
+    #include "USBSerial.h"
+    FileHandle *mbed::mbed_override_console(int fd)
+    {
+        static USBSerial serial(true, 0x1f00, 0x2012, 0x0001);
+        return &serial;
+    }
+#endif
+
+EventQueue readoutSensorsQueue(2*64 * EVENTS_EVENT_SIZE);
 
 DigitalOut LED_R(LEDRed);
 DigitalOut LED_B(LEDBlue);
 
 Timer global;
-Ticker ds18b20Ticker;
-Ticker thermocoupleTicker;
-Ticker mprlsTicker;
-Ticker imuTicker;
+LowPowerTicker ds18b20Ticker;
+LowPowerTicker thermocoupleTicker;
+LowPowerTicker mprlsTicker;
+LowPowerTicker imuTicker;
 
 uint32_t flashAddress = 0x0FE000;
 FLASH myCONFIG(flashAddress);
@@ -37,29 +49,20 @@ float dataSet[conSets];
 float dataSetTime[conSets];
 uint16_t dataSetNumber = 0;
 
-volatile bool flagBattery = false;
-volatile bool flagSHTC3 = false;
-volatile bool flagMPRLS = false;
-volatile bool flagTC = false;
-volatile bool flagIMU = false;
-volatile bool flagMLX = false;
-volatile bool flagBMP = false;
-volatile bool flagDS18B20 = false;
-volatile bool flagLoadcell = false;
-
 void shtc3Config();
 void mlxConfig();
 void imuConfig();
 void bmpConfig();
-
 void ds18b20Config();
 void tcConfig();
 void mprlsConfig();
 
+void onConnect();
+void onDisconnect();
+
 bool deviceInSleepMode = true;
 
 Ticker tickerShtc3;
-
 
 I2C i2c(SDA,SCL);
 
@@ -79,7 +82,7 @@ DS18B20 ds18b20(&myOneWire);
 ADS1231 myWeightSensor( SCLK_LOADCELL, DATA_LOADCELL_PIN );
 
 //InterruptIn IMU_DataReady(INT1);
-DigitalIn IMU_DataReady(INT1);
+InterruptIn IMU_DataReady(INT1);
 InterruptIn mlx_DataReady(MLX_INT);
 
 InterruptIn bmpDataReady(INT_BMP384); 
@@ -101,22 +104,12 @@ struct {
 
 uint8_t configData[20]={0};
 
-struct sensor {
-    bool enable;
-    bool burst;
-    int datapoints;
-    int threshold;
-    bool rising;
-};
-
-struct sensor MLX;
-
 void blinkLed(int times, DigitalOut led){
     for (int i =0; i<times; i++) {
         led=!led;
-        ThisThread::sleep_for(300ms);
+        ThisThread::sleep_for(200ms);
         led=!led;
-        ThisThread::sleep_for(300ms);
+        ThisThread::sleep_for(200ms);
     }
 }
 
@@ -130,32 +123,113 @@ void updateBatteryStatus(){
     PhyphoxBLE::batteryService.updateBatteryLevel(percent);
 }
 
-void shtc3SetFlag(){
-    flagSHTC3 = true;
-}
-void imuSetFlag(){
-    flagIMU = true;
-}
-void mlxSetFlag(){
-    flagMLX = true;
-}
-void bmpSetFlag(){
-    flagBMP = true;
-}
-void ds18b20SetFlag(){
-    flagDS18B20 = true;
-}
-void thermocoupleSetFlag(){
-    flagTC = true;
-}
-void mprlsSetFlag(){
-    flagMPRLS = true;
-}
+
+
 
 bool getNBit(uint8_t byte, int position){
     return byte & (1<<position);
 }
 
+
+void readBmp(){
+    bmp384.getData();
+    float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    PhyphoxBLE::write(data,3,ID_BMP384);
+}
+
+void readShtc3(){
+    uint16_t value[3];
+    shtc3.read(&value[0], &value[1],false); //always high precision mode
+    float floatA[3] = {shtc3.toCelsius(value[0]),shtc3.toPercentage(value[1]),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    PhyphoxBLE::write(&floatA[0],3,ID_SHTC3);
+}
+void readMPRLS(){
+    float value[2] = {mprls.readPressure(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    PhyphoxBLE::write(value,2,ID_MPRLS);
+}
+void readLoadcell(){
+    loadcellSample.status          = myWeightSensor.ADS1231_ReadRawData(&loadcellSample.count, loadcellSample.num_avg);
+    loadcellSample.calculated_volt = myWeightSensor.ADS1231_CalculateVoltage(&loadcellSample.count, 3.3);
+    loadcellSample.calculated_mass = myWeightSensor.ADS1231_CalculateMass(&loadcellSample.count, 0.052, ADS1231::ADS1231_SCALE_g);
+    float value[2] = {loadcellSample.calculated_mass.myMass,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    PhyphoxBLE::write(value,2,ID_LOADCELL);
+}
+void readIMU(){
+        uint8_t error;
+        IMU.status();
+        
+        error = IMU.readData();
+        if(error == false){
+            float time = (float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
+            IMU.measuredDataAcc[4*IMU.currentPackage+0]=IMU.ax;
+            IMU.measuredDataAcc[4*IMU.currentPackage+1]=IMU.ay;
+            IMU.measuredDataAcc[4*IMU.currentPackage+2]=IMU.az;
+            IMU.measuredDataAcc[4*IMU.currentPackage+3]=time;
+
+
+            IMU.measuredDataGyr[4*IMU.currentPackage+0]=IMU.gx;
+            IMU.measuredDataGyr[4*IMU.currentPackage+1]=IMU.gy;
+            IMU.measuredDataGyr[4*IMU.currentPackage+2]=IMU.gz;
+            IMU.measuredDataGyr[4*IMU.currentPackage+3]=time;
+            IMU.currentPackage+=1;
+
+            if(IMU.currentPackage == IMU.numberPerPackage){
+                PhyphoxBLE::write(IMU.measuredDataAcc,IMU.numberPerPackage*4,ID_ICM42605_ACC);
+                PhyphoxBLE::write(IMU.measuredDataGyr,IMU.numberPerPackage*4,ID_ICM42605_GYR);
+                IMU.currentPackage = 0;
+            }
+        }
+        
+}
+
+void readTHERMOCOUPLE(){
+        float value[2] = {Thermocouple.getTemp(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+        PhyphoxBLE::write(value,2,ID_THERMOCOUPLE);
+        Thermocouple.startTempConversion();
+}
+void readDS18B20(){
+    float floatData[2] = {ds18b20.getTemp(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
+    ds18b20.startTempConversion();
+    PhyphoxBLE::write(floatData, 2, ID_DS18B20);  
+}
+
+void readMLX(){
+    float value[4];
+    mlx.readMeasurement(&value[0], &value[1], &value[2]);    
+    mlx.measuredData[4*mlx.currentPackage+0]=value[0];
+    mlx.measuredData[4*mlx.currentPackage+1]=value[1];
+    mlx.measuredData[4*mlx.currentPackage+2]=value[2];
+    mlx.measuredData[4*mlx.currentPackage+3]=0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
+    mlx.currentPackage+=1;
+    if(mlx.currentPackage == mlx.numberPerPackage){
+        PhyphoxBLE::write(mlx.measuredData,mlx.numberPerPackage*4,ID_MLX90393);
+        mlx.currentPackage = 0;
+    }
+}
+void bmpSetFlag(){
+    readoutSensorsQueue.call(readBmp);
+}
+void shtc3SetFlag(){
+    readoutSensorsQueue.call(readShtc3);
+}
+void imuSetFlag(){
+    //readoutSensorsQueue.call(readIMU);
+}
+void mlxSetFlag(){
+    readoutSensorsQueue.call(readMLX);
+}
+void ds18b20SetFlag(){
+    readoutSensorsQueue.call(readDS18B20);
+}
+void thermocoupleSetFlag(){
+    readoutSensorsQueue.call(readTHERMOCOUPLE);
+}
+void mprlsSetFlag(){
+    readoutSensorsQueue.call(readMPRLS);
+}
+void checkBattery(){
+    readoutSensorsQueue.call(updateBatteryStatus);
+}
 void thermocoupleConfig(){
     PhyphoxBLE::read(&configData[0],20, ID_THERMOCOUPLE);
     if(configData[0]==1){
@@ -198,10 +272,10 @@ void ds18b20Config(){
 }
 void bmpConfig(){
     PhyphoxBLE::read(&configData[0],20,ID_BMP384);
-    
+
     if(configData[0]==1){
         bmp384.changeSettings(configData[1],configData[2],configData[3]);
-        ThisThread::sleep_for(100ms);// for some reason this is needed...
+        ThisThread::sleep_for(100ms);
         bmp384.enable();
     }else {
         bmp384.disable();
@@ -209,26 +283,15 @@ void bmpConfig(){
 }
 
 void imuConfig(){
-    //enable, rate, range acc, range gyr, number of packages
     PhyphoxBLE::read(&configData[0],20,ID_ICM42605);
-    IMU.setState(false, false);
-
-    //only both can be enabled or disabled, one rate for both!
-    IMU.init(configData[1], configData[2], configData[3], configData[3]);
-    //byte 0; bit 0 = enable accelerometer, bit 1 = enable gyroscope
-    //IMU.setState(getNBit(configData[0], 0), getNBit(configData[0], 1)); 
-    IMU.numberPerPackage = (uint8_t)configData[4];
-    if(configData[0]==true){
-        if(IMU.setState(1,1)){
-            NVIC_SystemReset();
-        }
-        imuTicker.attach(imuSetFlag, IMU.tickerInterval( configData[3])*1ms);
-    }else {
-        IMU.setState(0,0); 
-        imuTicker.detach();
+    IMU.changeSettings(configData[3],configData[1], configData[2]);
+    ThisThread::sleep_for(1ms);
+    if((uint8_t)configData[4]>0 && (uint8_t)configData[4]<=10){
+        IMU.numberPerPackage = (uint8_t)configData[4];
+    }else{
+        IMU.numberPerPackage = 1;
     }
-    
-    global.reset(); 
+    IMU.setState(1,1);    
 }
 void mlxConfig(){
     
@@ -245,9 +308,7 @@ void mlxConfig(){
     //byte 0; bit 0: enable mlx all axis
     if(getNBit(configData[0], 0)){
         mlx.startBurstMode();
-        MLX.enable = true;
     }else{
-        MLX.enable = false;
         mlx.exitMode();
     }    
 
@@ -267,92 +328,13 @@ void shtc3Config(){
     
 }
 
-void readShtc3(){
-    uint16_t value[3];
-    shtc3.read(&value[0], &value[1],false); //always high precision mode
-    float floatA[3] = {shtc3.toCelsius(value[0]),shtc3.toPercentage(value[1]),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-    PhyphoxBLE::write(&floatA[0],3,ID_SHTC3);
-}
-
-void readMPRLS(){
-    
-    float value[2] = {mprls.readPressure(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-    PhyphoxBLE::write(value,2,ID_MPRLS);
-}
-void readBMP(){
-    bmp384.getData();
-    float data[3]={(float)0.01*bmp384.pressure,bmp384.temperature,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-    PhyphoxBLE::write(data,3,ID_BMP384);
-}         
-void readLoadcell(){
-    loadcellSample.status          = myWeightSensor.ADS1231_ReadRawData(&loadcellSample.count, loadcellSample.num_avg);
-    loadcellSample.calculated_volt = myWeightSensor.ADS1231_CalculateVoltage(&loadcellSample.count, 3.3);
-    loadcellSample.calculated_mass = myWeightSensor.ADS1231_CalculateMass(&loadcellSample.count, 0.052, ADS1231::ADS1231_SCALE_g);
-    float value[2] = {loadcellSample.calculated_mass.myMass,(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-    PhyphoxBLE::write(value,2,ID_LOADCELL);
-}
-void readIMU(){
-        uint8_t error;
-        error = IMU.readData();
-        if(error == false){
-            float time = (float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
-            IMU.measuredDataAcc[4*IMU.currentPackage+0]=IMU.ax;
-            IMU.measuredDataAcc[4*IMU.currentPackage+1]=IMU.ay;
-            IMU.measuredDataAcc[4*IMU.currentPackage+2]=IMU.az;
-            IMU.measuredDataAcc[4*IMU.currentPackage+3]=time;
-
-            IMU.measuredDataGyr[4*IMU.currentPackage+0]=IMU.gx;
-            IMU.measuredDataGyr[4*IMU.currentPackage+1]=IMU.gy;
-            IMU.measuredDataGyr[4*IMU.currentPackage+2]=IMU.gz;
-            IMU.measuredDataGyr[4*IMU.currentPackage+3]=time;
-            IMU.currentPackage+=1;
-    
-            if(IMU.currentPackage == IMU.numberPerPackage){
-                PhyphoxBLE::write(IMU.measuredDataAcc,IMU.numberPerPackage*4,ID_ICM42605_ACC);
-                PhyphoxBLE::write(IMU.measuredDataGyr,IMU.numberPerPackage*4,ID_ICM42605_GYR);
-                IMU.currentPackage = 0;
-            }
-            
-        }
-}
-
-void readTHERMOCOUPLE(){
-        float value[2] = {Thermocouple.getTemp(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-        PhyphoxBLE::write(value,2,ID_THERMOCOUPLE);
-        Thermocouple.startTempConversion();
-}
-void readDS18B20(){
-    float floatData[2] = {ds18b20.getTemp(),(float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count()};
-    ds18b20.startTempConversion();
-    PhyphoxBLE::write(floatData, 2, ID_DS18B20);  
-}
-
-void readMLX(){
-    float value[4];
-    mlx.readMeasurement(&value[0], &value[1], &value[2]);    
-    mlx.measuredData[4*mlx.currentPackage+0]=value[0];
-    mlx.measuredData[4*mlx.currentPackage+1]=value[1];
-    mlx.measuredData[4*mlx.currentPackage+2]=value[2];
-    mlx.measuredData[4*mlx.currentPackage+3]=0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
-    mlx.currentPackage+=1;
-    if(mlx.currentPackage == mlx.numberPerPackage){
-        PhyphoxBLE::write(mlx.measuredData,mlx.numberPerPackage*4,ID_MLX90393);
-        mlx.currentPackage = 0;
-    }
-}
 void receivedSN() {           // get data from phyphox app
     uint8_t mySNBufferArray[20];
     PhyphoxBLE::readHWConfig(&mySNBufferArray[0],20);
-    if(getNBit(mySNBufferArray[2], 0) ){
+    if(mySNBufferArray[2]){
         //restart to get name
         NVIC_SystemReset();
     }
-    //if second bit is true, user can set rgb led with bit 2 (blue) and 3 (red)
-    if(getNBit(mySNBufferArray[2], 1) ){
-        LED_B = getNBit(mySNBufferArray[2], 2);
-        LED_R = getNBit(mySNBufferArray[2], 3);
-    }
-    
     uint16_t intSN[1];
     intSN[0] = mySNBufferArray[1] << 8 | mySNBufferArray[0];
     myCONFIG.writeSN(intSN);
@@ -378,9 +360,7 @@ void receivedSN() {           // get data from phyphox app
     strcpy(myDeviceName, S.c_str());  
  }
 
-void checkBattery(){
-    flagBattery = true;
-}
+
 
 void initADS1231(){
     /*
@@ -402,9 +382,38 @@ void initADS1231(){
     */
 }
 
+void onDisconnect(){
+    if(PhyphoxBLE::currentConnections == 0){
+        NVIC_SystemReset(); //restart device until bug fixed
+        /*
+        tickerShtc3.detach();
+        thermocoupleTicker.detach();
+        mprlsTicker.detach();                
+        ds18b20Ticker.detach();
+        imuTicker.detach();
+        IMU.setState(false, false);
+        LED_R = 0;
+        mlx.exitMode();
+        bmp384.disable(); 
+        */               
+    }
+    //blinkLed(1, LED_R);
+}
+void onConnect(){
+    if(PhyphoxBLE::currentConnections == 1){
+        global.reset();
+    }
+    blinkLed(1, LED_B);
+}
+void imuDataAvailable(){
+    readoutSensorsQueue.call(readIMU);
+}
 int main()
 {
+    //mbed_trace_init();   
+    printf("Starting Satellite!\r\n");
     
+    PhyphoxBLE::led = &LED_R;
     global.reset();
     global.start();
     i2c.frequency(200000);
@@ -417,6 +426,7 @@ int main()
     LED_B=0;
     LED_R=0;
 
+    PhyphoxBLE::myMainQueue = &readoutSensorsQueue;
     PhyphoxBLE::shtc3Handler = &shtc3Config;
     PhyphoxBLE::imuHandler = &imuConfig;
     PhyphoxBLE::mlxHandler = &mlxConfig;
@@ -428,21 +438,24 @@ int main()
 
     PhyphoxBLE::hwConfigHandler = &receivedSN;
 
-    struct sensor MLX = {0,0,0,0,true};
+    PhyphoxBLE::connectHandler = &onConnect;
+    PhyphoxBLE::disconnectHandler = &onDisconnect;
 
     // init IMU
-    IMU.numberPerPackage = 1;
     IMU.reset();
-    IMU.init(AFS_2G, GFS_15_125DPS, AODR_12_5Hz, GODR_12_5Hz);
+    IMU.init(AFS_2G, GFS_15_125DPS, AODR_25Hz , AODR_25Hz);
+    IMU_DataReady.rise(&imuDataAvailable);
     //IMU.setState(true, true);
 
     // init SHTC3
     shtc3.init(&i2c);
     
-    //init mlx
+    
+    //init mlx 
     mlx_DataReady.rise(&mlxSetFlag);
     bmpDataReady.rise(&bmpSetFlag);
     mlx.begin_I2C(24, &i2c);//0x18
+    
     mlx.numberPerPackage = 1;
     mlx.exitMode();
     char DEVICENAME[30];
@@ -461,88 +474,12 @@ int main()
     mprls.setI2C(0x18 << 1 ,&i2c);  //TODO
     //EN_LOADCELL = 1;
     //initADS1231();
+    readoutSensorsQueue.dispatch_forever();
     
+    osThreadSetPriority(osThreadGetId(), osPriorityIdle);
+
     while (true) {
-        if(PhyphoxBLE::currentConnections >0 && deviceInSleepMode){
-            deviceInSleepMode=false;
-            global.reset();
-        }
-        if(PhyphoxBLE::currentConnections != deviceCount){
-            if(PhyphoxBLE::currentConnections>deviceCount){
-                blinkLed(2, LED_B);
-            }
-            deviceCount = PhyphoxBLE::currentConnections;
-        }
-        if(PhyphoxBLE::currentConnections ==0){
-            if(!deviceInSleepMode){
-                imuTicker.detach();
-                IMU.setState(false, false);
-                MLX.enable = false;
-                mlx.exitMode();
-                bmp384.disable();
-                tickerShtc3.detach();
-
-                thermocoupleTicker.detach();
-                mprlsTicker.detach();                
-                ds18b20Ticker.detach();
-                ThisThread::sleep_for(10ms);
-                flagBattery = false;
-                flagSHTC3 = false;
-                flagMPRLS = false;
-                flagTC = false;
-                flagIMU = false;
-                flagMLX = false;
-                flagBMP = false;
-                flagDS18B20 = false;
-                flagLoadcell = false;
-
-                deviceInSleepMode = true;
-            }
-            ThisThread::sleep_for(200ms);
-        }
-        
-        
-        if(bmpAvailable){
-            if(flagBMP){
-                readBMP();
-                flagBMP = false;
-            }
-        }        
-        if(flagBattery){
-            updateBatteryStatus();
-            flagBattery=false;
-        }
-        if(flagSHTC3){
-            readShtc3();
-            flagSHTC3=false;
-        }
-        if(flagLoadcell){
-            readLoadcell();
-            flagLoadcell=false;
-        }
-        if(flagMPRLS){
-            readMPRLS();
-            flagMPRLS=false;    
-        }
-        if(flagIMU){
-            readIMU();
-            flagIMU=false;
-        } 
-            
-        if(flagMLX){
-            flagMLX=false;
-            readMLX();
-        }
-        
-         if(flagDS18B20){
-            flagDS18B20=false;
-            readDS18B20();
-        }
-         if(flagTC){
-            readTHERMOCOUPLE();
-            flagTC=false;
-
-        }        
+        ThisThread::sleep_for(1000ms);
     }
 }
 

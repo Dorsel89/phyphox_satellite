@@ -37,14 +37,15 @@ const UUID PhyphoxBLE::ds18b20ConfigCharacteristicUUID = UUID(phyphoxBleDS18B20C
 const UUID PhyphoxBLE::mprlsDataCharacteristicUUID = UUID(phyphoxBleMPRLSDataCharacteristicUUID);
 const UUID PhyphoxBLE::mprlsConfigCharacteristicUUID = UUID(phyphoxBleMPRLSConfigCharacteristicUUID);
 
-uint16_t PhyphoxBLE::currentConnections =0;
+uint16_t volatile PhyphoxBLE::currentConnections =0;
 char PhyphoxBLE::name[50] = "";
 
 
-Thread PhyphoxBLE::bleEventThread(osPriorityNormal, 4096+4096);
-Thread PhyphoxBLE::transferExpThread;
+Thread PhyphoxBLE::bleEventThread(osPriorityHigh,4096*2);
+Thread PhyphoxBLE::transferExpThread(osPriorityLow,4096*2);
 
-uint8_t PhyphoxBLE::data_package[182] = {0};
+uint8_t PhyphoxBLE::data_packageLarge[182] = {0};
+uint8_t PhyphoxBLE::data_packageSmall[20] = {0};
 uint8_t PhyphoxBLE::config_package[CONFIGSIZE] = {0};
 
 /*BLE stuff*/
@@ -55,49 +56,50 @@ uint8_t PhyphoxBLE::readValue[DATASIZE] = {0};
 
 //Characteristics (data+config) for
 //  - IMU
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::icm42605DataAccCharacteristic{PhyphoxBLE::icm42605DataAccCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::icm42605DataGyrCharacteristic{PhyphoxBLE::icm42605DataGyrCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::icm42605ConfigCharacteristic{PhyphoxBLE::icm42605ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageLarge)> PhyphoxBLE::icm42605DataAccCharacteristic{PhyphoxBLE::icm42605DataAccCharacteristicUUID, PhyphoxBLE::data_packageLarge, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageLarge)> PhyphoxBLE::icm42605DataGyrCharacteristic{PhyphoxBLE::icm42605DataGyrCharacteristicUUID, PhyphoxBLE::data_packageLarge, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::icm42605ConfigCharacteristic{PhyphoxBLE::icm42605ConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
 //  - SHTC3
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::shtc3DataCharacteristic{PhyphoxBLE::shtc3DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::shtc3ConfigCharacteristic{PhyphoxBLE::shtc3ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageSmall)> PhyphoxBLE::shtc3DataCharacteristic{PhyphoxBLE::shtc3DataCharacteristicUUID, PhyphoxBLE::data_packageSmall, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::shtc3ConfigCharacteristic{PhyphoxBLE::shtc3ConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
-//  - MAGNETOMETER
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::bmp384DataCharacteristic{PhyphoxBLE::bmp384DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::bmp384ConfigCharacteristic{PhyphoxBLE::bmp384ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+//  - BMP
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageLarge)> PhyphoxBLE::bmp384DataCharacteristic{PhyphoxBLE::bmp384DataCharacteristicUUID, PhyphoxBLE::data_packageLarge, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::bmp384ConfigCharacteristic{PhyphoxBLE::bmp384ConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
-//  - MS5607
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::mlx90393DataCharacteristic{PhyphoxBLE::mlx90393DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::mlx90393ConfigCharacteristic{PhyphoxBLE::mlx90393ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+//  - MLX
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageLarge)> PhyphoxBLE::mlx90393DataCharacteristic{PhyphoxBLE::mlx90393DataCharacteristicUUID, PhyphoxBLE::data_packageLarge, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::mlx90393ConfigCharacteristic{PhyphoxBLE::mlx90393ConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
 //  - LOADCELL
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::loadcellDataCharacteristic{PhyphoxBLE::loadcellDataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::loadcellConfigCharacteristic{PhyphoxBLE::loadcellConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageSmall)> PhyphoxBLE::loadcellDataCharacteristic{PhyphoxBLE::loadcellDataCharacteristicUUID, PhyphoxBLE::data_packageSmall, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::loadcellConfigCharacteristic{PhyphoxBLE::loadcellConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
 //  - MPRLS
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::mprlsDataCharacteristic{PhyphoxBLE::mprlsDataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::mprlsConfigCharacteristic{PhyphoxBLE::mprlsConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageSmall)> PhyphoxBLE::mprlsDataCharacteristic{PhyphoxBLE::mprlsDataCharacteristicUUID, PhyphoxBLE::data_packageSmall, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::mprlsConfigCharacteristic{PhyphoxBLE::mprlsConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
 //  - THERMOCOUPLE
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::thermocoupleDataCharacteristic{PhyphoxBLE::thermocoupleDataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::thermocoupleConfigCharacteristic{PhyphoxBLE::thermocoupleConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageSmall)> PhyphoxBLE::thermocoupleDataCharacteristic{PhyphoxBLE::thermocoupleDataCharacteristicUUID, PhyphoxBLE::data_packageSmall, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::thermocoupleConfigCharacteristic{PhyphoxBLE::thermocoupleConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
 //  - DS18B20
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::ds18b20DataCharacteristic{PhyphoxBLE::ds18b20DataCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::ds18b20ConfigCharacteristic{PhyphoxBLE::ds18b20ConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageSmall)> PhyphoxBLE::ds18b20DataCharacteristic{PhyphoxBLE::ds18b20DataCharacteristicUUID, PhyphoxBLE::data_packageSmall, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::config_package)> PhyphoxBLE::ds18b20ConfigCharacteristic{PhyphoxBLE::ds18b20ConfigCharacteristicUUID, PhyphoxBLE::config_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
-ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_package)> PhyphoxBLE::hwConfigCharacteristic{PhyphoxBLE::hwConfigCharacteristicUUID, PhyphoxBLE::data_package, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
+ReadWriteArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::data_packageSmall)> PhyphoxBLE::hwConfigCharacteristic{PhyphoxBLE::hwConfigCharacteristicUUID, PhyphoxBLE::data_packageSmall, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY}; //Note: Use { } instead of () google most vexing parse
 
 
 //Experiment Transfer
 ReadOnlyArrayGattCharacteristic<uint8_t, sizeof(PhyphoxBLE::readValue)> PhyphoxBLE::experimentCharacteristic{PhyphoxBLE::experimentCharacteristicUUID, PhyphoxBLE::readValue, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY};
 
-EventQueue PhyphoxBLE::queue{64 * EVENTS_EVENT_SIZE};
+EventQueue PhyphoxBLE::queue{2*64 * EVENTS_EVENT_SIZE};
 /*end BLE stuff*/
-EventQueue PhyphoxBLE::transferQueue{64 * EVENTS_EVENT_SIZE};
+EventQueue PhyphoxBLE::transferQueue{2*64 * EVENTS_EVENT_SIZE};
 
 PhyphoxBleEventHandler PhyphoxBLE::eventHandler(bleInstance);
+PhyphoxBleGattEventHandler PhyphoxBLE::gattTestEventHandler(bleInstance);
 
 //GattCharacteristic* PhyphoxBLE::phyphoxCharacteristics[1] = {&PhyphoxBLE::experimentCharacteristic};
 //GattService PhyphoxBLE::phyphoxService{PhyphoxBLE::phyphoxExperimentServiceUUID, PhyphoxBLE::phyphoxCharacteristics, sizeof(PhyphoxBLE::phyphoxCharacteristics) / sizeof(GattCharacteristic *)};
@@ -147,6 +149,12 @@ void (*PhyphoxBLE::mprlsHandler)() = nullptr;
 
 void (*PhyphoxBLE::hwConfigHandler)() = nullptr;
 
+void (*PhyphoxBLE::connectHandler)() = nullptr;
+void (*PhyphoxBLE::disconnectHandler)() = nullptr;
+
+void PhyphoxBLE::disconnectHandlerBuffer(){
+    myMainQueue->call(disconnectHandler);
+}
 
 void PhyphoxBleEventHandler::onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event)
 {
@@ -156,7 +164,10 @@ void PhyphoxBleEventHandler::onDisconnectionComplete(const ble::DisconnectionCom
 	//#endif
 	ble.gap().startAdvertising(ble::LEGACY_ADVERTISING_HANDLE);
     PhyphoxBLE::currentConnections= PhyphoxBLE::currentConnections -1;
-
+    PhyphoxBLE::disconnectHandlerBuffer();
+}
+void PhyphoxBleGattEventHandler::onDataWritten(const GattWriteCallbackParams &params){
+    PhyphoxBLE::configReceived(&params);
 }
 
 void PhyphoxBleEventHandler::onConnectionComplete(const ble::ConnectionCompleteEvent &event)
@@ -173,6 +184,7 @@ void PhyphoxBleEventHandler::onConnectionComplete(const ble::ConnectionCompleteE
                                     ble::conn_interval_t(PhyphoxBLE::maxConInterval),
                                     ble::slave_latency_t (PhyphoxBLE::slaveLatency),
                                    ble::supervision_timeout_t(PhyphoxBLE::timeout));                                   
+    PhyphoxBLE::connectHandler();                                   
 }
 
 #ifndef NDEBUG
@@ -319,12 +331,17 @@ void PhyphoxBLE::transferExp()
 	}
 }
 
+
+
 void PhyphoxBLE::bleInitComplete(BLE::InitializationCompleteCallbackContext* params)
 {	
 	
-	ble.gattServer().onUpdatesEnabled(PhyphoxBLE::when_subscription_received);
-	ble.gattServer().onDataWritten(PhyphoxBLE::configReceived);
+	//ble.gattServer().onUpdatesEnabled(PhyphoxBLE::when_subscription_received);
+    
+	//ble.gattServer().onDataWritten(PhyphoxBLE::configReceived);
+    
 	ble.gap().setEventHandler(&PhyphoxBLE::eventHandler);
+    ble.gattServer().setEventHandler(&PhyphoxBLE::gattTestEventHandler);
 
 	uint8_t _adv_buffer[ble::LEGACY_ADVERTISING_MAX_SIZE];
 	ble::AdvertisingDataBuilder adv_data_builder(_adv_buffer);
@@ -377,7 +394,7 @@ void PhyphoxBLE::start(const char* DEVICE_NAME, uint8_t* exp_pointer, size_t len
 	#endif
 
 	strncpy(name, DEVICE_NAME, 49);
-    name[50] = '\0';
+    name[49] = '\0';
 
 	if(exp_pointer != nullptr){
 		p_exp = exp_pointer;
