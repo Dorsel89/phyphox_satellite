@@ -78,8 +78,8 @@ MAX31850 Thermocouple(&myOneWire);
 DS18B20 ds18b20(&myOneWire);
 ADS1231 myWeightSensor( SCLK_LOADCELL, DATA_LOADCELL_PIN );
 
-//InterruptIn IMU_DataReady(INT1);
-DigitalIn IMU_DataReady(INT1);
+InterruptIn IMU_DataReady(INT1);
+//DigitalIn IMU_DataReady(INT1);
 InterruptIn mlx_DataReady(MLX_INT);
 
 InterruptIn bmpDataReady(INT_BMP384); 
@@ -209,23 +209,18 @@ void bmpConfig(){
 }
 
 void imuConfig(){
+    IMU.setState(0,0);  
     PhyphoxBLE::read(&configData[0],20,ID_ICM42605);
-    IMU.setState(false, false);
-
-    IMU.init(configData[1], configData[3], configData[2], configData[4]);
-    //byte 0; bit 0 = enable accelerometer, bit 1 = enable gyroscope
-    //IMU.setState(getNBit(configData[0], 0), getNBit(configData[0], 1)); 
-    
-    if(configData[0]==true){
-        if(IMU.setState(1,1)){
-            NVIC_SystemReset();
-        }
-        imuTicker.attach(imuSetFlag, IMU.tickerInterval( configData[4])*1ms);
-    }else {
-        IMU.setState(0,0); 
-        imuTicker.detach();
+    // enable  Gscale Ascale ODR
+    configData[4] = 0x00;
+    IMU.changeSettings(configData[3],configData[1], configData[2]);
+    ThisThread::sleep_for(1ms);
+    if((uint8_t)configData[4]>0 && (uint8_t)configData[4]<=10){
+        IMU.numberPerPackage = (uint8_t)configData[4];
+    }else{
+        IMU.numberPerPackage = 1;
     }
-    
+    IMU.setState(1,1);  
     global.reset(); 
 }
 void mlxConfig(){
@@ -340,7 +335,7 @@ void receivedSN() {           // get data from phyphox app
      myCONFIG.readSN(mySN);
      
      if(mySN[0] == 0xFFFF){
-         mySN[0]=0;
+         mySN[0]=91;
      }
      
     
@@ -408,7 +403,8 @@ int main()
 
     // init IMU
     IMU.reset();
-    IMU.init(AFS_2G, GFS_15_125DPS, AODR_12_5Hz, GODR_12_5Hz);
+    IMU.init(AFS_2G, GFS_2000DPS, AODR_25Hz, GODR_25Hz);
+    IMU_DataReady.rise(&imuSetFlag);
     //IMU.setState(true, true);
 
     // init SHTC3
@@ -446,6 +442,7 @@ int main()
         }
         if(PhyphoxBLE::currentConnections ==0){
             if(!deviceInSleepMode){
+                NVIC_SystemReset();
                 imuTicker.detach();
                 IMU.setState(false, false);
                 MLX.enable = false;
