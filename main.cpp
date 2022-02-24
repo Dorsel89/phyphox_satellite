@@ -230,9 +230,12 @@ void mlxConfig(){
     mlx.setGain(mlx90393_gain((uint8_t)configData[1]));
     mlx.setFilter(mlx90393_filter((uint8_t)configData[2]));
     mlx.setOversampling(mlx90393_oversampling((uint8_t)configData[3]));
+//    mlx.setResolution(MLX90393_X, mlx90393_resolution((uint8_t)configData[4]));
+//    mlx.setResolution(MLX90393_Y, mlx90393_resolution((uint8_t)configData[5]));
+//    mlx.setResolution(MLX90393_Z, mlx90393_resolution((uint8_t)configData[6]));
     mlx.setResolution(MLX90393_X, mlx90393_resolution((uint8_t)configData[4]));
-    mlx.setResolution(MLX90393_Y, mlx90393_resolution((uint8_t)configData[5]));
-    mlx.setResolution(MLX90393_Z, mlx90393_resolution((uint8_t)configData[6]));
+    mlx.setResolution(MLX90393_Z, mlx90393_resolution((uint8_t)configData[5]));
+    mlx.setResolution(MLX90393_Y, mlx90393_resolution((uint8_t)configData[6]));
     mlx.numberPerPackage = (uint8_t)configData[7];
     
     //byte 0; bit 0: enable mlx all axis
@@ -286,8 +289,10 @@ void readIMU(){
         error = IMU.readData();
         if(error == false){
             float time = (float)0.001*(float)duration_cast<std::chrono::milliseconds>(global.elapsed_time()).count();
-            float accFloat[4]={IMU.ax,IMU.ay,IMU.az,time};
-            float gyrFloat[4]={IMU.gx,IMU.gy,IMU.gz,time};
+            //float accFloat[4]={IMU.ax,IMU.ay,IMU.az,time};
+            //float gyrFloat[4]={IMU.gx,IMU.gy,IMU.gz,time};
+            float accFloat[4]={IMU.ay,IMU.az,IMU.ax,time};  //rearange axis to printed coordianate system
+            float gyrFloat[4]={IMU.gy,IMU.gz,IMU.gx,time};
             PhyphoxBLE::write(accFloat,4,ID_ICM42605_ACC);
             PhyphoxBLE::write(gyrFloat,4,ID_ICM42605_GYR);
         }
@@ -306,7 +311,8 @@ void readDS18B20(){
 
 void readMLX(){
     float value[4];
-    mlx.readMeasurement(&value[0], &value[1], &value[2]);    
+    //mlx.readMeasurement(&value[0], &value[1], &value[2]);    
+    mlx.readMeasurement(&value[0], &value[2], &value[1]);    
     mlx.measuredData[4*mlx.currentPackage+0]=value[0];
     mlx.measuredData[4*mlx.currentPackage+1]=value[1];
     mlx.measuredData[4*mlx.currentPackage+2]=value[2];
@@ -335,7 +341,7 @@ void receivedSN() {           // get data from phyphox app
      myCONFIG.readSN(mySN);
      
      if(mySN[0] == 0xFFFF){
-         mySN[0]=91;
+         mySN[0]=94;
      }
      
     
